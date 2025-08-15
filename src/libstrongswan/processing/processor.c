@@ -259,7 +259,10 @@ static void process_job(private_processor_t *this, worker_thread_t *worker)
 	thread_cleanup_push((thread_cleanup_t)restart, worker);
 	while (TRUE)
 	{
-		requeue = worker->job->execute(worker->job);
+
+        //DBG1(DBG_LIB, "Lucas Execute function pointer address: %p\n", worker->job->execute);
+        //printf("Lucas Execute function pointer address: %p\n", worker->job->execute);
+        requeue = worker->job->execute(worker->job);
 		if (requeue.type != JOB_REQUEUE_TYPE_DIRECT)
 		{
 			break;

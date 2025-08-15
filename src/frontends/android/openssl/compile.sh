@@ -6,10 +6,17 @@
 # Copies archives and header files to $OUT_DIR.
 
 set -e
+set -x
 
 export PATH=${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
+
+#export PATH=${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/darwin-x86_64/bin:$PATH
+
+
 # necessary for OpenSSL 1.1.1
 export ANDROID_NDK_HOME=${ANDROID_NDK_ROOT}
+
+export
 
 # automatically determine the ABIs supported by the NDK
 : ${ABIS=$(jq -r 'map_values(select(.default == true)) | keys | join(" ")' ${ANDROID_NDK_ROOT}/meta/abis.json)}
@@ -52,7 +59,12 @@ OPTIONS="${OPTIONS} \
 
 make distclean >/dev/null || true
 
-./Configure ${OPTIONS}
+#./Configure ${OPTIONS}
+
+./Configure --help
+
+exit 0
+
 make -j $(nproc) build_generated >/dev/null
 make -j $(nproc) libcrypto.a >/dev/null
 

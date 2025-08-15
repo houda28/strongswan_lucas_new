@@ -9,6 +9,9 @@ FROM debian:bullseye
 
 ARG packages="jq make perl"
 
+ENV HTTP_PROXY=http://10.50.128.110:3128
+ENV HTTPS_PROXY=http://10.50.128.110:3128
+
 RUN apt-get update && \
   DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
   --no-install-recommends \
@@ -18,7 +21,12 @@ RUN apt-get update && \
 COPY compile.sh /
 RUN chmod +x /compile.sh
 
+
+
 ENV ANDROID_NDK_ROOT /ndk
+#ENV ANDROID_NDK_ROOT /Users/hshu/Library/Android/sdk/ndk/22.1.7171670
+
+
 ENV OUT_DIR /out
 
 WORKDIR /src

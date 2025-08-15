@@ -143,6 +143,6 @@ LOCAL_ARM_MODE := arm
 
 LOCAL_PRELINK_MODULE := false
 
-LOCAL_LDLIBS += -ldl
+LOCAL_LDLIBS += -ldl -rdynamic -g -O0
 
 include $(BUILD_SHARED_LIBRARY)

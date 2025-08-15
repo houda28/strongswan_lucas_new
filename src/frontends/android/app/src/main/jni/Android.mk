@@ -7,7 +7,9 @@ strongswan_USE_BYOD := true
 
 strongswan_CHARON_PLUGINS := android-log socket-default openssl nonce \
 	pkcs1 pem x509 xcbc kdf revocation \
-	eap-identity eap-mschapv2 eap-md5 eap-gtc eap-tls
+	eap-identity eap-mschapv2 eap-md5 eap-gtc eap-tls xauth xauth-eap xauth-generic
+
+#	eap-identity eap-mschapv2 eap-md5 eap-gtc eap-tls
 
 ifneq ($(strongswan_USE_BYOD),)
 strongswan_BYOD_PLUGINS := eap-ttls eap-tnc tnc-imc tnc-tnccs tnccs-20
@@ -26,7 +28,7 @@ include $(strongswan_PATH)/Android.common.mk
 
 # CFLAGS (partially from a configure run using droid-gcc)
 strongswan_CFLAGS := \
-	-Wall \
+	-Wall -g -O0 \
 	-Wextra \
 	-Wno-format \
 	-Wno-pointer-sign \
@@ -53,6 +55,9 @@ strongswan_CFLAGS := \
 	-DCONFIG_H_INCLUDED \
 	-DMONOLITHIC \
 	-DUSE_IKEV1 \
+	-DUSE_XAUTH_GENERIC \
+	-DUSE_XAUTH \
+	-DUSE_AGGRESSIVE_MODE \
 	-DUSE_IKEV2 \
 	-DUSE_BUILTIN_PRINTF \
 	-DDEBUG \

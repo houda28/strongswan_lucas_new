@@ -754,6 +754,44 @@ static proposal_t *parse_proposal(private_android_service_t *this,
 	return proposal;
 }
 
+
+/**
+ * Add a single auth cfg of given class to peer cfg
+ */
+static void add_auth_cfg(peer_cfg_t *peer_cfg, bool local,
+                         char *id, auth_class_t class)
+{
+    auth_cfg_t *auth;
+
+    auth = auth_cfg_create();
+    auth->add(auth, AUTH_RULE_AUTH_CLASS, class);
+
+    if (!local)
+    {
+        //auth->add(auth, AUTH_RULE_IDENTITY_LOOSE, TRUE);
+        auth->add(auth, AUTH_RULE_IDENTITY, identification_create_from_string(id));
+    }
+    else
+    {
+        switch(class)
+        {
+            case AUTH_CLASS_XAUTH:
+                auth->add(auth, AUTH_RULE_XAUTH_IDENTITY, identification_create_from_string(id));
+                break;
+            default:
+                auth->add(auth, AUTH_RULE_IDENTITY, identification_create_from_string(id));
+                break;
+        }
+    }
+
+    peer_cfg->add_auth_cfg(peer_cfg, auth, local);
+}
+
+
+#include "cmd_creds_lucas.h"
+static cmd_creds_t *creds;
+
+
 static job_requeue_t initiate(private_android_service_t *this)
 {
 	identification_t *gateway = NULL;
@@ -765,7 +803,7 @@ static job_requeue_t initiate(private_android_service_t *this)
 	ike_sa_t *ike_sa;
 	auth_cfg_t *auth;
 	ike_cfg_create_t ike = {
-		.version = IKEV2,
+		.version = IKEV1,
 		.local = "",
 		.local_port = charon->socket->get_port(charon->socket, FALSE),
 		.force_encap = TRUE,
@@ -777,6 +815,7 @@ static job_requeue_t initiate(private_android_service_t *this)
 		.rekey_time = 36000, /* 10h */
 		.jitter_time = 600, /* 10min */
 		.over_time = 1800, /* 30min */
+        .options =OPT_IKEV1_AGGRESSIVE,
 	};
 	child_cfg_create_t child = {
 		.lifetime = {
@@ -803,16 +842,21 @@ static job_requeue_t initiate(private_android_service_t *this)
 	ike.no_certreq = !this->settings->get_bool(this->settings,
 											   "connection.certreq", TRUE);
 	ike_cfg = ike_cfg_create(&ike);
-	proposal = parse_proposal(this, PROTO_IKE, "connection.ike_proposal");
-	if (proposal)
-	{
-		ike_cfg->add_proposal(ike_cfg, proposal);
-	}
-	else
-	{
-		ike_cfg->add_proposal(ike_cfg, proposal_create_default(PROTO_IKE));
-		ike_cfg->add_proposal(ike_cfg, proposal_create_default_aead(PROTO_IKE));
-	}
+
+
+    //ike_cfg->add_proposal(ike_cfg, proposal_create_from_string(PROTO_IKE, "aes256-sha256-modp2048"));// for utm
+    ike_cfg->add_proposal(ike_cfg, proposal_create_from_string(PROTO_IKE, "aes256-sha2_384-modp1024"));
+
+//  proposal = parse_proposal(this, PROTO_IKE, "connection.ike_proposal");
+//	if (proposal)
+//	{
+//		ike_cfg->add_proposal(ike_cfg, proposal);
+//	}
+//	else
+//	{
+//		ike_cfg->add_proposal(ike_cfg, proposal_create_default(PROTO_IKE));
+//		ike_cfg->add_proposal(ike_cfg, proposal_create_default_aead(PROTO_IKE));
+//	}
 
 	peer_cfg = peer_cfg_create("android", ike_cfg, &peer);
 	peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET));
@@ -820,49 +864,64 @@ static job_requeue_t initiate(private_android_service_t *this)
 
 	type = this->settings->get_str(this->settings, "connection.type", NULL);
 	/* local auth config */
-	if (streq("ikev2-cert", type) ||
-		streq("ikev2-cert-eap", type) ||
-		streq("ikev2-eap-tls", type))
-	{
-		if (!add_auth_cfg_cert(this, peer_cfg))
-		{
-			peer_cfg->destroy(peer_cfg);
-			charonservice->update_status(charonservice,
-										 CHARONSERVICE_CERTIFICATE_UNAVAILABLE);
-			return JOB_REQUEUE_NONE;
-		}
-	}
-	if (streq("ikev2-eap", type) ||
-		streq("ikev2-cert-eap", type) ||
-		streq("ikev2-byod-eap", type))
-	{
-		add_auth_cfg_pw(this, peer_cfg, strpfx(type, "ikev2-byod"));
-	}
+//	if (streq("ikev2-cert", type) ||
+//		streq("ikev2-cert-eap", type) ||
+//		streq("ikev2-eap-tls", type))
+//	{
+//		if (!add_auth_cfg_cert(this, peer_cfg))
+//		{
+//			peer_cfg->destroy(peer_cfg);
+//			charonservice->update_status(charonservice,
+//										 CHARONSERVICE_CERTIFICATE_UNAVAILABLE);
+//			return JOB_REQUEUE_NONE;
+//		}
+//	}
+//	if (streq("ikev2-eap", type) ||
+//		streq("ikev2-cert-eap", type) ||
+//		streq("ikev2-byod-eap", type))
+//	{
+//		add_auth_cfg_pw(this, peer_cfg, strpfx(type, "ikev2-byod"));
+//	}
 
 	/* remote auth config */
-	auth = auth_cfg_create();
+//    auth = auth_cfg_create();
+//    remote_id = this->settings->get_str(this->settings, "connection.remote_id",
+//                                        NULL);
+//    if (remote_id)
+//    {
+//        gateway = identification_create_from_string(remote_id);
+//    }
+//    if (!gateway || gateway->get_type(gateway) == ID_ANY)
+//    {
+//        DESTROY_IF(gateway);
+//        gateway = identification_create_from_string(ike.remote);
+//        /* only use this if remote ID was not configured explicitly */
+//        auth->add(auth, AUTH_RULE_IDENTITY_LOOSE, TRUE);
+//    }
+//    auth->add(auth, AUTH_RULE_IDENTITY, gateway);
+//    auth->add(auth, AUTH_RULE_AUTH_CLASS, AUTH_CLASS_PUBKEY);
+//    if (this->settings->get_bool(this->settings, "connection.strict_revocation", FALSE))
+//    {
+//        auth->add(auth, AUTH_RULE_CRL_VALIDATION, VALIDATION_GOOD);
+//    }
+//    peer_cfg->add_auth_cfg(peer_cfg, auth, FALSE);
+
+
 	remote_id = this->settings->get_str(this->settings, "connection.remote_id",
 										NULL);
-	if (remote_id)
-	{
-		gateway = identification_create_from_string(remote_id);
-	}
-	if (!gateway || gateway->get_type(gateway) == ID_ANY)
-	{
-		DESTROY_IF(gateway);
-		gateway = identification_create_from_string(ike.remote);
-		/* only use this if remote ID was not configured explicitly */
-		auth->add(auth, AUTH_RULE_IDENTITY_LOOSE, TRUE);
-	}
-	auth->add(auth, AUTH_RULE_IDENTITY, gateway);
-	auth->add(auth, AUTH_RULE_AUTH_CLASS, AUTH_CLASS_PUBKEY);
-	if (this->settings->get_bool(this->settings, "connection.strict_revocation", FALSE))
-	{
-		auth->add(auth, AUTH_RULE_CRL_VALIDATION, VALIDATION_GOOD);
-	}
-	peer_cfg->add_auth_cfg(peer_cfg, auth, FALSE);
+    //add_auth_cfg(peer_cfg, TRUE, "GroupVPN", AUTH_CLASS_PSK);
+    add_auth_cfg(peer_cfg, TRUE, "AndroidClient", AUTH_CLASS_PSK);
+    //add_auth_cfg(peer_cfg, TRUE, "vpnsecure", AUTH_CLASS_XAUTH);
+    add_auth_cfg(peer_cfg, TRUE, "vpnsecure", AUTH_CLASS_XAUTH);
+    //add_auth_cfg(peer_cfg, FALSE, "vpnsecure", AUTH_CLASS_XAUTH);
 
-	child_cfg = child_cfg_create("android", &child);
+    //add_auth_cfg(peer_cfg, TRUE, remote_id, AUTH_CLASS_XAUTH);
+    add_auth_cfg(peer_cfg, FALSE, "vpn.example.com", AUTH_CLASS_PSK);
+
+    creds = cmd_creds_create();
+
+
+    child_cfg = child_cfg_create("android", &child);
 	proposal = parse_proposal(this, PROTO_ESP, "connection.esp_proposal");
 	if (proposal)
 	{
@@ -871,17 +930,21 @@ static job_requeue_t initiate(private_android_service_t *this)
 	else
 	{	/* create ESP proposals with and without DH groups, let responder decide
 		 * if PFS is used */
-		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
-								"aes256gcm16-aes128gcm16-chacha20poly1305-"
-								"curve25519-ecp384-ecp521-modp3072-modp4096-ecp256-modp8192"));
-		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
-								"aes256-aes192-aes128-sha384-sha256-sha512-sha1-"
-								"curve25519-ecp384-ecp521-modp3072-modp4096-ecp256-modp2048-"
-								"modp8192"));
-		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
-								"aes256gcm16-aes128gcm16-chacha20poly1305"));
-		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
-								"aes256-aes192-aes128-sha384-sha256-sha512-sha1"));
+
+        child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
+                                                                       "aes128-sha256"));
+
+//        child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
+//								"aes256gcm16-aes128gcm16-chacha20poly1305-"
+//								"curve25519-ecp384-ecp521-modp3072-modp4096-ecp256-modp8192"));
+//		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
+//								"aes256-aes192-aes128-sha384-sha256-sha512-sha1-"
+//								"curve25519-ecp384-ecp521-modp3072-modp4096-ecp256-modp2048-"
+//								"modp8192"));
+//		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
+//								"aes256gcm16-aes128gcm16-chacha20poly1305"));
+//		child_cfg->add_proposal(child_cfg, proposal_create_from_string(PROTO_ESP,
+//								"aes256-aes192-aes128-sha384-sha256-sha512-sha1"));
 	}
 	ts = traffic_selector_create_from_cidr("0.0.0.0/0", 0, 0, 65535);
 	child_cfg->add_traffic_selector(child_cfg, TRUE, ts);

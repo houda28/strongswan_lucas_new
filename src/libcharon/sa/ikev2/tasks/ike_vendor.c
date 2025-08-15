@@ -165,7 +165,7 @@ METHOD(task_t, build, status_t,
 		}
 		if (send_vid)
 		{
-			DBG2(DBG_IKE, "sending %s vendor ID", vids[i].desc);
+			DBG2(DBG_IKE, "sending %s %s vendor ID", vids[i].desc, vids[i].id);
 			vid = vendor_id_payload_create_data(PLV2_VENDOR_ID,
 										chunk_clone(get_vid_data(&vids[i])));
 			message->add_payload(message, &vid->payload_interface);
@@ -212,7 +212,7 @@ METHOD(task_t, process, status_t,
 			{
 				if (known_vid(&vids[i], data))
 				{
-					DBG1(DBG_IKE, "received %s vendor ID", vids[i].desc);
+					DBG1(DBG_IKE, "received %s %s vendor ID", vids[i].desc, vids[i].id);
 					if (vids[i].extension)
 					{
 						this->ike_sa->enable_extension(this->ike_sa,

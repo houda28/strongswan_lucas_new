@@ -124,10 +124,29 @@ callback_job_t *callback_job_create_with_prio(callback_job_cb_t cb, void *data,
 /*
  * Described in header.
  */
+
+#include <execinfo.h>
+
+#include <dlfcn.h>  // 需要链接 -ldl
+
+void print_callback_name(callback_job_cb_t cb) {
+    Dl_info info;
+    if (dladdr((void*)cb, &info)) {
+        printf("Callback name: %s\n", info.dli_sname);
+
+        DBG1(DBG_LIB, "Lucas Callback name: %s\n", info.dli_sname);
+    } else {
+        DBG1(DBG_LIB, "Lucas Failed to get callback name\n");
+    }
+}
+
+
+
 callback_job_t *callback_job_create(callback_job_cb_t cb, void *data,
 									callback_job_cleanup_t cleanup,
 									callback_job_cancel_t cancel)
 {
+    print_callback_name(cb);
 	return callback_job_create_with_prio(cb, data, cleanup, cancel,
 										 JOB_PRIO_MEDIUM);
 }

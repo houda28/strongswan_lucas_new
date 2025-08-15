@@ -155,7 +155,7 @@ endif
 
 LOCAL_SRC_FILES += $(call add_plugin, android-log)
 ifneq ($(call plugin_enabled, android-log),)
-LOCAL_LDLIBS += -llog
+LOCAL_LDLIBS += -llog -rdynamic -g -O0
 endif
 
 LOCAL_SRC_FILES += $(call add_plugin, attr)

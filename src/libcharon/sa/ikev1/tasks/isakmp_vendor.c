@@ -298,7 +298,7 @@ static void build(private_isakmp_vendor_t *this, message_t *message)
 		   (vendor_ids[i].extension == EXT_CISCO_UNITY && cisco_unity) ||
 		   (vendor_ids[i].extension == EXT_IKE_FRAGMENTATION && fragmentation))
 		{
-			DBG2(DBG_IKE, "sending %s vendor ID", vendor_ids[i].desc);
+			DBG2(DBG_IKE, "sending %s %s vendor ID", vendor_ids[i].desc, vendor_ids[i].id);
 			vid_payload = vendor_id_payload_create_data(PLV1_VENDOR_ID,
 				chunk_clone(chunk_create(vendor_ids[i].id, vendor_ids[i].len)));
 			message->add_payload(message, &vid_payload->payload_interface);
@@ -309,7 +309,7 @@ static void build(private_isakmp_vendor_t *this, message_t *message)
 		if ((this->initiator && vendor_natt_ids[i].send) ||
 			this->best_natt_ext == i)
 		{
-			DBG2(DBG_IKE, "sending %s vendor ID", vendor_natt_ids[i].desc);
+			DBG2(DBG_IKE, "sending %s %s vendor ID", vendor_natt_ids[i].desc, vendor_natt_ids[i].id);
 			vid_payload = vendor_id_payload_create_data(PLV1_VENDOR_ID,
 							chunk_clone(chunk_create(vendor_natt_ids[i].id,
 													 vendor_natt_ids[i].len)));
@@ -343,7 +343,7 @@ static void process(private_isakmp_vendor_t *this, message_t *message)
 			{
 				if (is_known_vid(data, i))
 				{
-					DBG1(DBG_IKE, "received %s vendor ID", vendor_ids[i].desc);
+					DBG1(DBG_IKE, "received %s %s vendor ID", vendor_ids[i].desc, vendor_ids[i].id);
 					if (vendor_ids[i].extension)
 					{
 						this->ike_sa->enable_extension(this->ike_sa,
@@ -360,8 +360,8 @@ static void process(private_isakmp_vendor_t *this, message_t *message)
 					if (chunk_equals(data, chunk_create(vendor_natt_ids[i].id,
 													vendor_natt_ids[i].len)))
 					{
-						DBG1(DBG_IKE, "received %s vendor ID",
-							 vendor_natt_ids[i].desc);
+						DBG1(DBG_IKE, "received %s %s vendor ID",
+							 vendor_natt_ids[i].desc, vendor_natt_ids[i].id);
 						if (vendor_natt_ids[i].extension &&
 						   (i < this->best_natt_ext || this->best_natt_ext < 0))
 						{

@@ -37,6 +37,8 @@
 #include "byod/imc_android.h"
 #endif
 
+
+
 #include <daemon.h>
 #include <ipsec.h>
 #include <library.h>
@@ -427,6 +429,19 @@ static void initiate(settings_t *settings)
 	lib->settings->set_bool(lib->settings,
 						"charon.rsa_pss",
 						settings->get_bool(settings, "global.rsa_pss", FALSE));
+
+//    lib->settings->set_bool(lib->settings,
+//                            "charon.plugins.xauth.enable",
+//                            TRUE);  // Force-enable XAuth
+
+    lib->settings->set_int(lib->settings,
+                           "charon.plugins.xauth-generic.timeout",
+                           60);
+
+    lib->settings->set_bool(lib->settings,
+                            "charon.plugins.xauth-generic.strict",
+                            TRUE);
+
 	/* this is actually the size of the complete IKE/IP packet, so if the MTU
 	 * for the TUN devices has to be reduced to pass traffic the IKE packets
 	 * will be a bit smaller than necessary as there is no IPsec overhead like
@@ -545,6 +560,9 @@ static void set_options(char *logfile, jboolean ipv6)
 /**
  * Initialize the charonservice object
  */
+#include "xauth_generic_plugin_lucas.h"
+//#include "xauth_generic.h"
+
 static void charonservice_init(JNIEnv *env, jobject service, jobject builder,
 							   char *appdir, jboolean byod)
 {
@@ -587,6 +605,8 @@ static void charonservice_init(JNIEnv *env, jobject service, jobject builder,
 
 	lib->plugins->add_static_features(lib->plugins, "androidbridge", features,
 									  countof(features), TRUE, NULL, NULL);
+
+    xauth_generic_plugin_create();
 
 #ifdef USE_BYOD
 	if (byod)
@@ -740,7 +760,7 @@ JNI_METHOD(CharonVpnService, initializeCharon, jboolean,
 		library_deinit();
 		return FALSE;
 	}
-	lib->plugins->status(lib->plugins, LEVEL_CTRL);
+	lib->plugins->status(lib->plugins, LEVEL_PRIVATE);
 
 	/* add handler for SEGV and ILL etc. */
 	action.sa_handler = segv_handler;

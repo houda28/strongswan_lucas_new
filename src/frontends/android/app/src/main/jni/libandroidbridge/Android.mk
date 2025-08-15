@@ -4,6 +4,10 @@ include $(CLEAR_VARS)
 # copy-n-paste from Makefile.am
 LOCAL_SRC_FILES := \
 android_jni.c \
+xauth_generic_plugin_lucas.c \
+xauth_generic_lucas.c \
+backend/cmd_options.c \
+backend/cmd_creds_lucas.c \
 backend/android_attr.c \
 backend/android_creds.c \
 backend/android_fetcher.c \
@@ -54,7 +58,7 @@ LOCAL_ARM_MODE := arm
 
 LOCAL_PRELINK_MODULE := false
 
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -rdynamic -g -O0
 
 LOCAL_SHARED_LIBRARIES := libstrongswan libipsec libcharon
 

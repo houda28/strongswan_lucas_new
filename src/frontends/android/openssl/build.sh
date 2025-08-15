@@ -15,6 +15,7 @@
 #
 
 set -e
+set -x
 
 if [ -z "${ANDROID_NDK_ROOT}" ]; then
 	echo "ANDROID_NDK_ROOT is not set"

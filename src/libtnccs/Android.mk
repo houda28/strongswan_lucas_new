@@ -16,7 +16,7 @@ LOCAL_SRC_FILES := $(filter %.c,$(libtnccs_la_SOURCES))
 
 LOCAL_SRC_FILES += $(call add_plugin, tnc-imc)
 ifneq ($(call plugin_enabled, tnc-imc),)
-LOCAL_LDLIBS += -ldl
+LOCAL_LDLIBS += -ldl -rdynamic -g -O0
 endif
 
 LOCAL_SRC_FILES += $(call add_plugin, tnc-tnccs)
