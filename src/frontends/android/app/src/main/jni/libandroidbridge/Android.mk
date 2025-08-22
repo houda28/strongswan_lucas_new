@@ -1,11 +1,13 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
+#xauth_generic_plugin_lucas.c \
+#xauth_generic_lucas.c \
+
+
 # copy-n-paste from Makefile.am
 LOCAL_SRC_FILES := \
 android_jni.c \
-xauth_generic_plugin_lucas.c \
-xauth_generic_lucas.c \
 backend/cmd_options.c \
 backend/cmd_creds_lucas.c \
 backend/android_attr.c \

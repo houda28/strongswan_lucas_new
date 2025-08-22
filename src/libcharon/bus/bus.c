@@ -375,16 +375,16 @@ METHOD(bus_t, vlog, void,
 	 * 2) We might have to acquire the read lock below even if it wouldn't be
 	 * necessary anymore due to another thread concurrently unregistering a
 	 * logger or reducing the level. */
-	if (skip_level(&this->max_level[group], level) &&
-		skip_level(&this->max_vlevel[group], level))
-	{
-		return;
-	}
+//	if (skip_level(&this->max_level[group], level) &&
+//		skip_level(&this->max_vlevel[group], level))
+//	{
+//		return;
+//	}
 
 	this->log_lock->read_lock(this->log_lock);
 	loggers = this->loggers[group];
 
-	if (this->max_level[group] >= level)
+	//if (this->max_level[group] >= level)
 	{
 		char buf[1024];
 		ssize_t len;
@@ -415,7 +415,7 @@ METHOD(bus_t, vlog, void,
 			free(data.message);
 		}
 	}
-	if (this->max_vlevel[group] >= level)
+	//if (this->max_vlevel[group] >= level)
 	{
 		data.ike_sa = this->thread_sa->get(this->thread_sa);
 		data.thread = thread_current_id();

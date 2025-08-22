@@ -44,7 +44,7 @@
 #include <library.h>
 #include <threading/thread.h>
 
-#define ANDROID_DEBUG_LEVEL 1
+#define ANDROID_DEBUG_LEVEL 4
 #define ANDROID_RETRASNMIT_TRIES 3
 #define ANDROID_RETRANSMIT_TIMEOUT 2.0
 #define ANDROID_RETRANSMIT_BASE 1.4
@@ -430,6 +430,7 @@ static void initiate(settings_t *settings)
 						"charon.rsa_pss",
 						settings->get_bool(settings, "global.rsa_pss", FALSE));
 
+
 //    lib->settings->set_bool(lib->settings,
 //                            "charon.plugins.xauth.enable",
 //                            TRUE);  // Force-enable XAuth
@@ -606,7 +607,6 @@ static void charonservice_init(JNIEnv *env, jobject service, jobject builder,
 	lib->plugins->add_static_features(lib->plugins, "androidbridge", features,
 									  countof(features), TRUE, NULL, NULL);
 
-    xauth_generic_plugin_create();
 
 #ifdef USE_BYOD
 	if (byod)

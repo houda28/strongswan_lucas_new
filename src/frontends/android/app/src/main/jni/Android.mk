@@ -7,7 +7,7 @@ strongswan_USE_BYOD := true
 
 strongswan_CHARON_PLUGINS := android-log socket-default openssl nonce \
 	pkcs1 pem x509 xcbc kdf revocation \
-	eap-identity eap-mschapv2 eap-md5 eap-gtc eap-tls xauth xauth-eap xauth-generic
+	eap-identity eap-mschapv2 eap-md5 eap-gtc eap-tls xauth xauth-eap xauth-generic save-keys
 
 #	eap-identity eap-mschapv2 eap-md5 eap-gtc eap-tls
 
@@ -60,6 +60,7 @@ strongswan_CFLAGS := \
 	-DUSE_AGGRESSIVE_MODE \
 	-DUSE_IKEV2 \
 	-DUSE_BUILTIN_PRINTF \
+	-USE_SAVE_KEYS \
 	-DDEBUG \
 	-DCHARON_UDP_PORT=0 \
 	-DCHARON_NATT_PORT=0 \

@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
+
 # copy-n-paste from Makefile.am
 libcharon_la_SOURCES := \
 attributes/attributes.c attributes/attributes.h \
@@ -178,7 +179,7 @@ LOCAL_SRC_FILES += $(call add_plugin, eap-identity)
 
 LOCAL_SRC_FILES += $(call add_plugin, eap-md5)
 
-LOCAL_SRC_FILES += $(call add_plugin, eap-mschapv2)
+#LOCAL_SRC_FILES += $(call add_plugin, eap-mschapv2)
 
 LOCAL_SRC_FILES += $(call add_plugin, eap-sim)
 
@@ -189,6 +190,16 @@ LOCAL_SRC_FILES += $(call add_plugin, eap-simaka-pseudonym)
 LOCAL_SRC_FILES += $(call add_plugin, eap-simaka-reauth)
 
 LOCAL_SRC_FILES += $(call add_plugin, eap-sim-file)
+
+LOCAL_SRC_FILES += $(call add_plugin, xauth-generic)
+
+
+#LOCAL_SRC_FILES += $(call add_plugin, save_keys)
+
+LOCAL_SRC_FILES += $(LOCAL_PATH)/plugins/save_keys/save_keys_listener.c
+LOCAL_SRC_FILES += $(LOCAL_PATH)/plugins/save_keys/save_keys_plugin.c
+LOCAL_SRC_FILES += $(LOCAL_PATH)/plugins/save_keys/save_keys_listener.h
+LOCAL_SRC_FILES += $(LOCAL_PATH)/plugins/save_keys/save_keys_plugin.h
 
 # adding libakasim if either eap-aka or eap-sim is enabled
 ifneq ($(or $(call plugin_enabled, eap-aka), $(call plugin_enabled, eap-sim)),)

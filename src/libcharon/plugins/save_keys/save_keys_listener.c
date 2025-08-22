@@ -409,13 +409,13 @@ save_keys_listener_t *save_keys_listener_create()
 		},
 		.path = lib->settings->get_str(lib->settings,
 									   "%s.plugins.save-keys.wireshark_keys",
-									   NULL, lib->ns),
+									   "/data/user/0/org.strongswan.android/files/", lib->ns),
 		.esp = lib->settings->get_bool(lib->settings,
 									   "%s.plugins.save-keys.esp",
-									   FALSE, lib->ns),
+									   TRUE, lib->ns),
 		.ike = lib->settings->get_bool(lib->settings,
 									   "%s.plugins.save-keys.ike",
-									   FALSE, lib->ns),
+                                       TRUE, lib->ns),
 	);
 
 	if (this->path && (this->ike || this->esp))

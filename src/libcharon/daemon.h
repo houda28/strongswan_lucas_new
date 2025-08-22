@@ -203,7 +203,7 @@ typedef struct daemon_t daemon_t;
 /**
  * Number of threads in the thread pool, if not specified in config.
  */
-#define DEFAULT_THREADS 16
+#define DEFAULT_THREADS 7
 
 /**
  * Primary UDP port used by IKE.
