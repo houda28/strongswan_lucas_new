@@ -194,7 +194,7 @@ LOCAL_SRC_FILES += $(call add_plugin, eap-sim-file)
 LOCAL_SRC_FILES += $(call add_plugin, xauth-generic)
 
 
-#LOCAL_SRC_FILES += $(call add_plugin, save_keys)
+##LOCAL_SRC_FILES += $(call add_plugin, save_keys)
 
 LOCAL_SRC_FILES += $(LOCAL_PATH)/plugins/save_keys/save_keys_listener.c
 LOCAL_SRC_FILES += $(LOCAL_PATH)/plugins/save_keys/save_keys_plugin.c
