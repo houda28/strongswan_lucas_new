@@ -815,7 +815,7 @@ static job_requeue_t initiate(private_android_service_t *this)
 		.rekey_time = 36000, /* 10h */
 		.jitter_time = 600, /* 10min */
 		.over_time = 1800, /* 30min */
-        .options =OPT_IKEV1_AGGRESSIVE,
+        .options =OPT_IKEV1_AGGRESSIVE|OPT_IKEV1_PUSH_MODE,
 	};
 	child_cfg_create_t child = {
 		.lifetime = {
@@ -858,7 +858,7 @@ static job_requeue_t initiate(private_android_service_t *this)
 //		ike_cfg->add_proposal(ike_cfg, proposal_create_default_aead(PROTO_IKE));
 //	}
 
-	peer_cfg = peer_cfg_create("android", ike_cfg, &peer);
+	peer_cfg = peer_cfg_create("androidPeer", ike_cfg, &peer);
 	peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET));
 	peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET6));
 
@@ -909,14 +909,21 @@ static job_requeue_t initiate(private_android_service_t *this)
 
 	remote_id = this->settings->get_str(this->settings, "connection.remote_id",
 										NULL);
-    //add_auth_cfg(peer_cfg, TRUE, "GroupVPN", AUTH_CLASS_PSK);
-    add_auth_cfg(peer_cfg, TRUE, "AndroidClient", AUTH_CLASS_PSK);
-    //add_auth_cfg(peer_cfg, TRUE, "vpnsecure", AUTH_CLASS_XAUTH);
-    add_auth_cfg(peer_cfg, TRUE, "vpnsecure", AUTH_CLASS_XAUTH);
-    //add_auth_cfg(peer_cfg, FALSE, "vpnsecure", AUTH_CLASS_XAUTH);
+    add_auth_cfg(peer_cfg, TRUE, "GroupVPN", AUTH_CLASS_PSK);
+    add_auth_cfg(peer_cfg, TRUE, "hzhou", AUTH_CLASS_XAUTH);
+    add_auth_cfg(peer_cfg, FALSE, "18C241825BEA", AUTH_CLASS_PSK);
 
-    //add_auth_cfg(peer_cfg, TRUE, remote_id, AUTH_CLASS_XAUTH);
-    add_auth_cfg(peer_cfg, FALSE, "vpn.example.com", AUTH_CLASS_PSK);
+
+
+
+
+//    add_auth_cfg(peer_cfg, TRUE, "AndroidClient", AUTH_CLASS_PSK);
+//    //add_auth_cfg(peer_cfg, TRUE, "vpnsecure", AUTH_CLASS_XAUTH);
+//    add_auth_cfg(peer_cfg, TRUE, "vpnsecure", AUTH_CLASS_XAUTH);
+//    //add_auth_cfg(peer_cfg, FALSE, "vpnsecure", AUTH_CLASS_XAUTH);
+//
+//    //add_auth_cfg(peer_cfg, TRUE, remote_id, AUTH_CLASS_XAUTH);
+//    add_auth_cfg(peer_cfg, FALSE, "vpn.example.com", AUTH_CLASS_PSK);
 
     creds = cmd_creds_create();
 

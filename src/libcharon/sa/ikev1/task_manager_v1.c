@@ -399,6 +399,9 @@ static bool mode_config_expected(private_task_manager_t *this)
 	bool local;
 	host_t *host;
 
+    // lucas
+    //return FALSE;
+
 	peer_cfg = this->ike_sa->get_peer_cfg(this->ike_sa);
 	if (peer_cfg)
 	{
@@ -448,6 +451,8 @@ METHOD(task_manager_t, initiate, status_t,
 	exchange_type_t exchange = EXCHANGE_TYPE_UNDEFINED;
 	bool new_mid = FALSE, expect_response = FALSE, canceled = FALSE, keep = FALSE;
 
+    DBG0(DBG_IKE, " task_manager v1 ->initiate start");
+
 	if (this->initiating.type != EXCHANGE_TYPE_UNDEFINED &&
 		this->initiating.type != INFORMATIONAL_V1)
 	{
@@ -456,6 +461,8 @@ METHOD(task_manager_t, initiate, status_t,
 		/* do not initiate if we already have a message in the air */
 		return SUCCESS;
 	}
+
+    DBG0(DBG_IKE, "task_manager v1 ->initiate start11");
 
 	if (this->active_tasks->get_count(this->active_tasks) == 0)
 	{
@@ -583,12 +590,16 @@ METHOD(task_manager_t, initiate, status_t,
 		enumerator->destroy(enumerator);
 	}
 
+    DBG0(DBG_IKE, "task_manager v1 ->initiate start33");
+
 	if (exchange == EXCHANGE_TYPE_UNDEFINED)
 	{
 		DBG2(DBG_IKE, "nothing to initiate");
 		/* nothing to do yet... */
 		return SUCCESS;
 	}
+
+    DBG0(DBG_IKE, "task_manager v1 ->initiate start44");
 
 	me = this->ike_sa->get_my_host(this->ike_sa);
 	other = this->ike_sa->get_other_host(this->ike_sa);
@@ -679,6 +690,9 @@ METHOD(task_manager_t, initiate, status_t,
 		message->destroy(message);
 		return retransmit(this, this->initiating.seqnr);
 	}
+
+    DBG1(DBG_IKE, "Lucas: send_packets without expect reponse");
+
 	send_packets(this, this->initiating.packets);
 	if (!keep)
 	{
@@ -701,6 +715,8 @@ METHOD(task_manager_t, initiate, status_t,
 				break;
 		}
 	}
+
+    DBG0(DBG_IKE, "task_manager v1 ->initiate will enter again");
 	return initiate(this);
 }
 
@@ -1125,7 +1141,11 @@ static status_t process_request(private_task_manager_t *this,
 	{
 		/* passive tasks completed, check if an active task has been queued,
 		 * such as XAUTH or modeconfig push */
-		return initiate(this);
+
+        status_t  lucas_return = initiate(this);
+        DBG0(DBG_IKE, "passive tasks initiate exit ....");
+
+		return lucas_return;
 	}
 	return SUCCESS;
 }

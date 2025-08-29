@@ -184,6 +184,10 @@ static struct {
 	{ "Juniper SRX", 0, FALSE, FALSE, 20,
 	  "\xfd\x80\x88\x04\xdf\x73\xb1\x51\x50\x70\x9d\x87\x80\x44\xcd\xe0\xac\x1e\xfc\xde"},
 
+        /* SonicWall Client provisioning policy */
+    { "SonicWall Client Provisioning Policy",  0, TRUE, FALSE, 20,
+            "\x97\x5b\x78\x16\xf6\x97\x89\x60\x0d\xda\x89\x04\x05\x76\xe0\xdb"},
+
 }, vendor_natt_ids[] = {
 
 	/* NAT-Traversal VIDs ordered by preference */

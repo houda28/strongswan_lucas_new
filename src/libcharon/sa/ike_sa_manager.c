@@ -1398,7 +1398,7 @@ METHOD(ike_sa_manager_t, checkout_by_message, ike_sa_t*,
 						entry->checked_out = thread_current();
 						unlock_single_segment(this, segment);
 
-						DBG2(DBG_MGR, "created IKE_SA %s[%u]",
+						DBG2(DBG_MGR, "created IKE_SA %s[%u] by message",
 							 ike_sa->get_name(ike_sa),
 							 ike_sa->get_unique_id(ike_sa));
 						goto out;

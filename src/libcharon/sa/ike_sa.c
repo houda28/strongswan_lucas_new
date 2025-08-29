@@ -1579,6 +1579,10 @@ METHOD(ike_sa_t, initiate, status_t,
 {
 	bool defer_initiate = FALSE;
 
+    DBG2(DBG_IKE, "ike_sa initiate start");
+
+
+
 	if (this->state == IKE_CREATED)
 	{
 		if (this->my_host->is_anyaddr(this->my_host) ||
@@ -1652,7 +1656,12 @@ METHOD(ike_sa_t, initiate, status_t,
 		return SUCCESS;
 	}
 	this->retry_initiate_queued = FALSE;
-	return this->task_manager->initiate(this->task_manager);
+
+    status_t lucas_return = this->task_manager->initiate(this->task_manager);
+
+    DBG0(DBG_IKE, " ike_sa initiate exited");
+
+	return lucas_return;
 }
 
 METHOD(ike_sa_t, retry_initiate, status_t,

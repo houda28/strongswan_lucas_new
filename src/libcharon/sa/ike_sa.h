@@ -51,17 +51,17 @@ typedef struct ike_sa_t ike_sa_t;
 /**
  * Timeout in seconds after that a half open IKE_SA gets deleted.
  */
-#define HALF_OPEN_IKE_SA_TIMEOUT 30
+#define HALF_OPEN_IKE_SA_TIMEOUT 300
 
 /**
  * Interval to send keepalives when NATed, in seconds.
  */
-#define KEEPALIVE_INTERVAL 20
+#define KEEPALIVE_INTERVAL 200
 
 /**
  * After which time rekeying should be retried if it failed, in seconds.
  */
-#define RETRY_INTERVAL 15
+#define RETRY_INTERVAL 150
 
 /**
  * Jitter to subtract from RETRY_INTERVAL to randomize rekey retry.

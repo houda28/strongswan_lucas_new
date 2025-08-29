@@ -44,7 +44,7 @@
 #include <library.h>
 #include <threading/thread.h>
 
-#define ANDROID_DEBUG_LEVEL 4
+#define ANDROID_DEBUG_LEVEL 2
 #define ANDROID_RETRASNMIT_TRIES 3
 #define ANDROID_RETRANSMIT_TIMEOUT 2.0
 #define ANDROID_RETRANSMIT_BASE 1.4
@@ -561,8 +561,6 @@ static void set_options(char *logfile, jboolean ipv6)
 /**
  * Initialize the charonservice object
  */
-#include "xauth_generic_plugin_lucas.h"
-//#include "xauth_generic.h"
 
 static void charonservice_init(JNIEnv *env, jobject service, jobject builder,
 							   char *appdir, jboolean byod)

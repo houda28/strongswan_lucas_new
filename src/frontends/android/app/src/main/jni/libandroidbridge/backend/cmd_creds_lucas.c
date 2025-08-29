@@ -300,14 +300,29 @@ cmd_creds_t *cmd_creds_create()
     identification_t *owner1, *owner2;
     mem_cred_t *set1, *set2 = NULL;
 
-    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("sonicwall")));
-    owner1 = identification_create_from_string("vpnsecure");
+//    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("sonicwall")));
+//    owner1 = identification_create_from_string("vpnsecure");
+//    set1 = mem_cred_create();
+//    set1->add_shared(set1, shared1->get_ref(shared1), owner1, NULL);
+//    lib->credmgr->add_set(lib->credmgr, &set1->set);
+//
+//    shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("sonicwall")));
+//    owner2 = identification_create_from_string("vpn.example.com");
+//    set2 = mem_cred_create();
+//    set2->add_shared(set2, shared2->get_ref(shared2), owner2, NULL);
+//    lib->credmgr->add_set(lib->credmgr, &set2->set);
+
+
+    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("S0nicw@ll")));
+    owner1 = identification_create_from_string("hzhou");
     set1 = mem_cred_create();
     set1->add_shared(set1, shared1->get_ref(shared1), owner1, NULL);
     lib->credmgr->add_set(lib->credmgr, &set1->set);
 
-    shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("sonicwall")));
-    owner2 = identification_create_from_string("vpn.example.com");
+    shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("12345678")));
+
+    //shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("S0nicwall")));
+    owner2 = identification_create_from_string("18C241825BEA");
     set2 = mem_cred_create();
     set2->add_shared(set2, shared2->get_ref(shared2), owner2, NULL);
     lib->credmgr->add_set(lib->credmgr, &set2->set);

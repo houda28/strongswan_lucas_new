@@ -154,6 +154,58 @@ static bool query_equals(query_t *this, query_t *other)
 	return this->family == other->family && streq(this->name, other->name);
 }
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
+static int fake_getaddrinfo(const char *hostname,
+                     const char *ip,
+                     const struct addrinfo *hints,
+                     struct addrinfo **res)
+{
+    (void)hostname; // unused, but kept for compatibility
+
+    // Allocate addrinfo
+    struct addrinfo *ai = calloc(1, sizeof(struct addrinfo));
+    if (!ai) return EAI_MEMORY;
+
+    // Allocate sockaddr_in
+    struct sockaddr_in *sa = calloc(1, sizeof(struct sockaddr_in));
+    if (!sa) {
+        free(ai);
+        return EAI_MEMORY;
+    }
+
+    sa->sin_family = AF_INET;
+    sa->sin_port   = 0; // you can set port later with connect()/bind()
+    if (inet_pton(AF_INET, ip, &sa->sin_addr) != 1) {
+        free(sa);
+        free(ai);
+        return EAI_FAIL;
+    }
+
+    // Fill addrinfo
+    ai->ai_family   = AF_INET;
+    ai->ai_socktype = hints ? hints->ai_socktype : SOCK_STREAM;
+    ai->ai_protocol = hints ? hints->ai_protocol : IPPROTO_TCP;
+    ai->ai_addrlen  = sizeof(struct sockaddr_in);
+    ai->ai_addr     = (struct sockaddr *)sa;
+    ai->ai_canonname = strdup(ip); // optional
+    ai->ai_next     = NULL;
+
+    *res = ai;
+    return 0; // success
+}
+
+static void fake_freeaddrinfo(struct addrinfo *res)
+{
+    if (!res) return;
+    free(res->ai_canonname);
+    free(res->ai_addr);
+    free(res);
+}
 /**
  * Main function of resolver threads
  */
@@ -205,8 +257,13 @@ static void *resolve_hosts(private_host_resolver_t *this)
 
 		thread_cleanup_push((thread_cleanup_t)query_signal_and_destroy, query);
 		old = thread_cancelability(TRUE);
-		error = getaddrinfo(query->name, NULL, &hints, &result);
-		thread_cancelability(old);
+		//error = getaddrinfo(query->name, NULL, &hints, &result);
+
+        fake_getaddrinfo("vpn.example.com", "10.103.226.137", &hints, &result);
+
+        error = 0;
+
+        thread_cancelability(old);
 		thread_cleanup_pop(FALSE);
 
 		this->mutex->lock(this->mutex);
