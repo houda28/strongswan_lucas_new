@@ -91,29 +91,126 @@ CALLBACK(send_esp, void,
 	charon->sender->send_no_marker(charon->sender, (packet_t*)packet);
 }
 
+
+//-------SonicWall----------
+bool check_dhcp(ip_packet_t *packet)
+{
+    host_t *dst, *src;
+    if (packet->get_next_header(packet) != IPPROTO_UDP)
+    {
+        DBG1(DBG_KNL, "The packet protocol is not udp");
+        return FALSE;
+    }
+    dst = packet->get_destination(packet);
+    if (dst->get_port(dst) != 68)
+    {
+        DBG1(DBG_KNL, "The packet destination port is not 68");
+        return FALSE;
+    }
+    src = packet->get_source(packet);
+    if (src->get_port(src) != 67)
+    {
+        DBG1(DBG_KNL, "The packet src port is not 67");
+        return FALSE;
+    }
+    DBG1(DBG_KNL, "check dhcp packet successfully");
+    return true;
+}
+
+static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
+{
+    vpnservice_builder_t *builder;
+    chunk_t data;
+    data = packet->get_payload(packet);
+    /* remove UDP header */
+    data = chunk_skip(data, 8);
+
+    DBG1(DBG_KNL, "get client ip address from dhcp is %s", inet_ntoa(*(struct in_addr *)(data.ptr+16)));
+
+    ike_sa_t *ike_sa;
+
+    ike_sa = charon->ike_sa_manager->checkout_by_id(charon->ike_sa_manager, 1);
+    if (ike_sa)
+    {
+        DBG1(DBG_KNL, "ike_sa is checked out successfully");
+        host_t *vip = host_create_from_string(inet_ntoa(*(struct in_addr *)(data.ptr+16)), 0);
+        //charon->bus->assign_vips(charon->bus, ike_sa, true);
+        ike_sa->add_virtual_ip(ike_sa, TRUE, vip);
+
+        builder = charonservice->get_vpnservice_builder(charonservice);
+
+        if (!vip->is_anyaddr(vip))
+        {
+            if (!builder->add_address(builder, vip))
+            {
+                DBG1(DBG_KNL, "builder add_address failed ");;
+            }
+        }
+
+//        if (!add_dns_servers(builder, ike_sa) ||
+//            !add_routes(builder, child_sa) ||
+//            !builder->set_mtu(builder, this->mtu))
+//        {
+//            return;
+//        }
+
+
+        int tunfd = builder->establish(builder);
+        if (tunfd == -1)
+        {
+            return;
+        }
+
+        this->lock->write_lock(this->lock);
+        if (this->tunfd > 0)
+        {	/* close previously opened TUN device */
+            close(this->tunfd);
+        }
+        this->tunfd = tunfd;
+        this->lock->unlock(this->lock);
+
+        DBG1(DBG_DMN, "successfully created TUN device again");
+
+        charon->ike_sa_manager->checkin(charon->ike_sa_manager, ike_sa);
+    }
+
+    return;
+}
+//------------------------------
+
+
 CALLBACK(deliver_plain, void,
 	private_android_service_t *this, ip_packet_t *packet)
 {
 	chunk_t encoding;
 	ssize_t len;
 
-	encoding = packet->get_encoding(packet);
 
-	this->lock->read_lock(this->lock);
-	if (this->tunfd < 0)
-	{	/* the TUN device is already closed */
-		this->lock->unlock(this->lock);
-		packet->destroy(packet);
-		return;
-	}
-	len = write(this->tunfd, encoding.ptr, encoding.len);
-	this->lock->unlock(this->lock);
+    //------SonicWall------
+    if (check_dhcp(packet))
+    {
+        handle_dhcp(packet, this);
+    } else
+    {
+        encoding = packet->get_encoding(packet);
 
-	if (len < 0 || len != encoding.len)
-	{
-		DBG1(DBG_DMN, "failed to write packet to TUN device: %s",
-			 strerror(errno));
-	}
+        this->lock->read_lock(this->lock);
+        if (this->tunfd < 0)
+        {	/* the TUN device is already closed */
+            this->lock->unlock(this->lock);
+            packet->destroy(packet);
+            return;
+        }
+        len = write(this->tunfd, encoding.ptr, encoding.len);
+        this->lock->unlock(this->lock);
+
+        if (len < 0 || len != encoding.len)
+        {
+            DBG1(DBG_DMN, "failed to write packet to TUN device: %s",
+                 strerror(errno));
+        }
+    }
+
 	packet->destroy(packet);
 }
 
@@ -286,6 +383,99 @@ static bool add_dns_servers(vpnservice_builder_t *builder, ike_sa_t *ike_sa)
 	return TRUE;
 }
 
+
+
+//--------- Sonicwall Code ---------
+// DHCP message types
+#define DHCPDISCOVER 1
+#define DHCPOFFER    2
+#define DHCPREQUEST  3
+#define DHCPACK      5
+
+// DHCP options
+#define DHCP_OPTION_MESSAGE_TYPE 53
+#define DHCP_OPTION_END 255
+
+// DHCP ports
+#define DHCP_SERVER_PORT 67
+#define DHCP_CLIENT_PORT 68
+
+// DHCP packet structure
+struct dhcp_packet {
+    uint8_t op;      // Message op code
+    uint8_t htype;   // Hardware address type
+    uint8_t hlen;    // Hardware address length
+    uint8_t hops;    // Hops
+    uint32_t xid;    // Transaction ID
+    uint16_t secs;   // Seconds elapsed
+    uint16_t flags;  // Flags
+    uint32_t ciaddr; // Client IP address
+    uint32_t yiaddr; // Your IP address
+    uint32_t siaddr; // Server IP address
+    uint32_t giaddr; // Gateway IP address
+    uint8_t chaddr[16]; // Client hardware address
+    uint8_t sname[64];  // Server host name
+    uint8_t file[128];  // Boot file name
+    uint32_t magic;     // Magic cookie
+    uint8_t options[308]; // Options
+};
+
+// Function to create a DHCP discovery packet
+void create_dhcp_discovery(struct dhcp_packet *packet, uint8_t *mac_addr) {
+    memset(packet, 0, sizeof(struct dhcp_packet));
+
+    // Set DHCP fields
+    packet->op = 1; // BOOTREQUEST
+    packet->htype = 1; // Ethernet
+    packet->hlen = 6; // Ethernet MAC length
+    packet->hops = 0;
+    packet->xid = htonl(rand()); // Random transaction ID
+    packet->secs = 0;
+    packet->flags = htons(0x8000); // Broadcast flag
+
+    // Copy MAC address
+    memcpy(packet->chaddr, mac_addr, 6);
+
+    // Set magic cookie (as per RFC 2132)
+    packet->magic = htonl(0x63825363);
+
+    // Set DHCP options
+    uint8_t *opt = packet->options;
+
+    // Message type option
+    *opt++ = DHCP_OPTION_MESSAGE_TYPE;
+    *opt++ = 1;
+    *opt++ = DHCPDISCOVER;
+
+    // Parameter request list (optional)
+    *opt++ = 55; // Parameter request list
+    *opt++ = 4;  // Length
+    *opt++ = 1;  // Subnet mask
+    *opt++ = 3;  // Router
+    *opt++ = 6;  // Domain name server
+    *opt++ = 15; // Domain name
+
+    // End option
+    *opt++ = DHCP_OPTION_END;
+}
+
+static job_requeue_t dhcp_event(private_android_service_t *this)
+{
+    DBG1(DBG_KNL, "preparing to send dhcp request");
+    struct dhcp_packet packet;
+    // Create DHCP discovery packet
+    create_dhcp_discovery(&packet, "010203040506");
+
+    DBG1(DBG_KNL, "sending dhcp request to server via IPSec tunnel");
+    host_t *src = host_create_from_string("0.0.0.0", DHCP_CLIENT_PORT);
+    host_t *dest = host_create_from_string("255.255.255.255", DHCP_SERVER_PORT);
+    ip_packet_t * ipPacket = ip_packet_create_udp_from_data(src, dest, chunk_from_thing(packet));
+    ipsec->processor->queue_outbound(ipsec->processor, ipPacket);
+    DBG1(DBG_KNL, "sent dhcp request successfully");
+    return JOB_REQUEUE_NONE;
+}
+//----------------------------------
+
 /**
  * Setup a new TUN device for the supplied SAs, also queues a job that
  * reads packets from this device.
@@ -357,10 +547,37 @@ static bool setup_tun_device(private_android_service_t *this,
 		ipsec->processor->register_outbound(ipsec->processor, send_esp, NULL);
 		this->dns_proxy->register_cb(this->dns_proxy, deliver_plain, this);
 
-		lib->processor->queue_job(lib->processor,
-			(job_t*)callback_job_create((callback_job_cb_t)handle_plain, this,
-									NULL, callback_job_cancel_thread));
+//		lib->processor->queue_job(lib->processor,
+//			(job_t*)callback_job_create((callback_job_cb_t)handle_plain, this,
+//									NULL, callback_job_cancel_thread));
+
+    // will create tun again, so schedule the job in 3 seconds later.
+    job_t *job = (job_t*)callback_job_create((callback_job_cb_t)handle_plain, this,
+                                             NULL, callback_job_cancel_thread);
+    lib->scheduler->schedule_job_ms(lib->scheduler, job, 3000);
+
 	}
+
+//    lib->processor->queue_job(lib->processor,
+//                              (job_t*)callback_job_create((callback_job_cb_t)dhcp_event, this,
+//                                                          NULL, NULL));
+
+    lib->processor->queue_job(lib->processor,
+                              (job_t*)callback_job_create_with_prio(
+                                      (callback_job_cb_t)dhcp_event, this, NULL,
+                                      NULL, JOB_PRIO_HIGH));
+
+//    job_t *job = (job_t*)callback_job_create_with_prio(
+//            (callback_job_cb_t)dhcp_event, this, NULL,
+//            NULL, JOB_PRIO_HIGH);
+
+//    //--------- Sonicwall Code ---------
+//    job_t *job = (job_t*)callback_job_create((callback_job_cb_t)dhcp_event, this,
+//                                             NULL, NULL);
+
+//    lib->scheduler->schedule_job_ms(lib->scheduler, job, 5000);
+    //----------------------------------
+
 	return TRUE;
 }
 

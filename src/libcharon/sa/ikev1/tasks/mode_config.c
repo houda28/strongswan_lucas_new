@@ -244,7 +244,8 @@ static void process_attribute(private_mode_config_t *this,
 			break;
 		}
         case ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_XML_DEFLATE_FORMAT:
-            addr = chunk_from_thing("1.1.1.1");
+            in_addr_t ipv4 = inet_addr("1.1.1.1");
+            chunk_t addr  = chunk_create((u_char*)&ipv4, sizeof(ipv4));
             host_t *ip = host_create_from_chunk(AF_INET, addr, 0);
             this->vips->insert_last(this->vips, ip);
             break;

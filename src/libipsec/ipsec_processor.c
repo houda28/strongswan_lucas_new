@@ -213,6 +213,10 @@ static job_requeue_t process_outbound(private_ipsec_processor_t *this)
 	packet = (ip_packet_t*)this->outbound_queue->dequeue(this->outbound_queue);
 
 	policy = ipsec->policies->find_by_packet(ipsec->policies, packet, FALSE, 0);
+
+
+//    return JOB_REQUEUE_DIRECT;
+
 	if (!policy)
 	{
 		DBG2(DBG_ESP, "no matching outbound IPsec policy for %#H == %#H [%hhu]",
@@ -241,6 +245,13 @@ static job_requeue_t process_outbound(private_ipsec_processor_t *this)
 		}
 		packet->destroy(packet);
 		policy->destroy(policy);
+
+        DBG0(DBG_ESP, "outbound IPsec packet %#H == %#H [%hhu]",
+             packet->get_source(packet), packet->get_destination(packet),
+             packet->get_next_header(packet));
+
+        packet->destroy(packet);
+        return JOB_REQUEUE_DIRECT;
 		return JOB_REQUEUE_DIRECT;
 	}
 	src = sa->get_source(sa);
