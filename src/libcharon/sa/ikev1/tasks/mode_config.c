@@ -243,6 +243,11 @@ static void process_attribute(private_mode_config_t *this,
 			}
 			break;
 		}
+        case ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_XML_DEFLATE_FORMAT:
+            addr = chunk_from_thing("1.1.1.1");
+            host_t *ip = host_create_from_chunk(AF_INET, addr, 0);
+            this->vips->insert_last(this->vips, ip);
+            break;
 		default:
 		{
 			if (this->initiator == this->pull)
@@ -559,13 +564,14 @@ void PrintPolicy(SW_Client_Policy policy) {
  */
 static void process_sw_policy_attribute(private_mode_config_t *this, enumerator_t *attributes) {
     configuration_attribute_t *ca;
+    chunk_t compressed = chunk_empty;
     while (attributes->enumerate(attributes, &ca))
     {
         DBG0(DBG_IKE, "processing %N sonicwall policy attribute", configuration_attribute_type_names, ca->get_type(ca));
         switch (ca->get_type(ca))
         {
             case ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_XML_DEFLATE_FORMAT:
-                chunk_t compressed = ca->get_chunk(ca);
+                compressed = ca->get_chunk(ca);
                 SW_Client_Policy policy;
                 // decompress and parse policy
                 int ret = parse_policy_from_chunk(compressed, &policy);
@@ -602,6 +608,7 @@ static void process_payloads(private_mode_config_t *this, message_t *message)
 			switch (cp->get_type(cp))
 			{
 				case CFG_SET:
+                case ISAKMP_SW_POLICY_SET:
 					/* when acting as a responder, we detect the mode using
 					 * the type of configuration payload. But we should double
 					 * check the peer is allowed to use push mode on us. */
@@ -614,6 +621,7 @@ static void process_payloads(private_mode_config_t *this, message_t *message)
 					this->identifier = cp->get_identifier(cp);
 					/* FALL */
 				case CFG_REPLY:
+                case ISAKMP_SW_POLICY_VERSION_REQUEST:
 					attributes = cp->create_attribute_enumerator(cp);
 					while (attributes->enumerate(attributes, &ca))
 					{
@@ -625,11 +633,11 @@ static void process_payloads(private_mode_config_t *this, message_t *message)
 					break;
 				case CFG_ACK:
 					break;
-                case ISAKMP_SW_POLICY_VERSION_REQUEST:
+                case ISAKMP_SW_POLICY_NAK_NO:
                     DBG0(DBG_IKE, "received SW_POLICY_VERSION_REQUEST message");
                     this->sonicwall = TRUE;
                     break;
-                case ISAKMP_SW_POLICY_SET:
+                case ISAKMP_SW_POLICY_NAK_NOO:
                     DBG0(DBG_IKE, "received SW_POLICY_SET message");
                     if (!this->initiator && accept_push(this))
                     {
@@ -866,120 +874,116 @@ METHOD(task_t, process_r, status_t,
 /**
  * Assign a migrated virtual IP
  */
-static host_t *assign_migrated_vip(linked_list_t *migrated, host_t *requested)
-{
-	enumerator_t *enumerator;
-	host_t *found = NULL, *vip;
-
-	enumerator = migrated->create_enumerator(migrated);
-	while (enumerator->enumerate(enumerator, &vip))
-	{
-		if (vip->ip_equals(vip, requested) ||
-		   (requested->is_anyaddr(requested) &&
-			requested->get_family(requested) == vip->get_family(vip)))
-		{
-			migrated->remove_at(migrated, enumerator);
-			found = vip;
-			break;
-		}
-	}
-	enumerator->destroy(enumerator);
-	return found;
-}
+//static host_t *assign_migrated_vip(linked_list_t *migrated, host_t *requested)
+//{
+//	enumerator_t *enumerator;
+//	host_t *found = NULL, *vip;
+//
+//	enumerator = migrated->create_enumerator(migrated);
+//	while (enumerator->enumerate(enumerator, &vip))
+//	{
+//		if (vip->ip_equals(vip, requested) ||
+//		   (requested->is_anyaddr(requested) &&
+//			requested->get_family(requested) == vip->get_family(vip)))
+//		{
+//			migrated->remove_at(migrated, enumerator);
+//			found = vip;
+//			break;
+//		}
+//	}
+//	enumerator->destroy(enumerator);
+//	return found;
+//}
 
 /**
  * Build CFG_REPLY message after receiving CFG_REQUEST
  */
-static status_t build_reply(private_mode_config_t *this, message_t *message)
-{
-	enumerator_t *enumerator;
-	configuration_attribute_type_t type;
-	chunk_t value;
-	cp_payload_t *cp;
-	peer_cfg_t *config;
-	identification_t *id DBG_UNUSED;
-	linked_list_t *vips, *pools, *migrated;
-	host_t *requested, *found;
-
-	cp = cp_payload_create_type(PLV1_CONFIGURATION, CFG_REPLY);
-
-	id = this->ike_sa->get_other_eap_id(this->ike_sa);
-	config = this->ike_sa->get_peer_cfg(this->ike_sa);
-	pools = linked_list_create_from_enumerator(
-									config->create_pool_enumerator(config));
-	/* if we migrated virtual IPs during reauthentication, reassign them */
-	vips = linked_list_create_from_enumerator(
-						this->ike_sa->create_virtual_ip_enumerator(this->ike_sa,
-																   FALSE));
-	migrated = vips->clone_offset(vips, offsetof(host_t, clone));
-	vips->destroy(vips);
-	this->ike_sa->clear_virtual_ips(this->ike_sa, FALSE);
-
-	vips = linked_list_create();
-	enumerator = this->vips->create_enumerator(this->vips);
-	while (enumerator->enumerate(enumerator, &requested))
-	{
-		DBG1(DBG_IKE, "peer requested virtual IP %H", requested);
-
-		found = assign_migrated_vip(migrated, requested);
-		if (!found)
-		{
-			found = charon->attributes->acquire_address(charon->attributes,
-											pools, this->ike_sa, requested);
-		}
-		if (found)
-		{
-			DBG1(DBG_IKE, "assigning virtual IP %H to peer '%Y'", found, id);
-			this->ike_sa->add_virtual_ip(this->ike_sa, FALSE, found);
-			cp->add_attribute(cp, build_vip(found));
-			vips->insert_last(vips, found);
-		}
-		else
-		{
-			DBG1(DBG_IKE, "no virtual IP found for %H requested by '%Y'",
-				 requested, id);
-		}
-	}
-	enumerator->destroy(enumerator);
-
-	charon->bus->assign_vips(charon->bus, this->ike_sa, TRUE);
-
-	/* query registered providers for additional attributes to include */
-	enumerator = charon->attributes->create_responder_enumerator(
-								charon->attributes, pools, this->ike_sa, vips);
-	while (enumerator->enumerate(enumerator, &type, &value))
-	{
-		cp->add_attribute(cp,
-			configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE,
-												 type, value));
-	}
-	enumerator->destroy(enumerator);
-	/* if a client did not re-request all addresses, release them */
-	enumerator = migrated->create_enumerator(migrated);
-	while (enumerator->enumerate(enumerator, &found))
-	{
-		charon->attributes->release_address(charon->attributes,
-											pools, found, this->ike_sa);
-	}
-	enumerator->destroy(enumerator);
-	migrated->destroy_offset(migrated, offsetof(host_t, destroy));
-	vips->destroy_offset(vips, offsetof(host_t, destroy));
-	pools->destroy(pools);
-
-	cp->set_identifier(cp, this->identifier);
-	message->add_payload(message, (payload_t*)cp);
-
-	return SUCCESS;
-}
+//static status_t build_reply(private_mode_config_t *this, message_t *message)
+//{
+//	enumerator_t *enumerator;
+//	configuration_attribute_type_t type;
+//	chunk_t value;
+//	cp_payload_t *cp;
+//	peer_cfg_t *config;
+//	identification_t *id DBG_UNUSED;
+//	linked_list_t *vips, *pools, *migrated;
+//	host_t *requested, *found;
+//
+//	cp = cp_payload_create_type(PLV1_CONFIGURATION, CFG_REPLY);
+//
+//	id = this->ike_sa->get_other_eap_id(this->ike_sa);
+//	config = this->ike_sa->get_peer_cfg(this->ike_sa);
+//	pools = linked_list_create_from_enumerator(
+//									config->create_pool_enumerator(config));
+//	/* if we migrated virtual IPs during reauthentication, reassign them */
+//	vips = linked_list_create_from_enumerator(
+//						this->ike_sa->create_virtual_ip_enumerator(this->ike_sa,
+//																   FALSE));
+//	migrated = vips->clone_offset(vips, offsetof(host_t, clone));
+//	vips->destroy(vips);
+//	this->ike_sa->clear_virtual_ips(this->ike_sa, FALSE);
+//
+//	vips = linked_list_create();
+//	enumerator = this->vips->create_enumerator(this->vips);
+//	while (enumerator->enumerate(enumerator, &requested))
+//	{
+//		DBG1(DBG_IKE, "peer requested virtual IP %H", requested);
+//
+//		found = assign_migrated_vip(migrated, requested);
+//		if (!found)
+//		{
+//			found = charon->attributes->acquire_address(charon->attributes,
+//											pools, this->ike_sa, requested);
+//		}
+//		if (found)
+//		{
+//			DBG1(DBG_IKE, "assigning virtual IP %H to peer '%Y'", found, id);
+//			this->ike_sa->add_virtual_ip(this->ike_sa, FALSE, found);
+//			cp->add_attribute(cp, build_vip(found));
+//			vips->insert_last(vips, found);
+//		}
+//		else
+//		{
+//			DBG1(DBG_IKE, "no virtual IP found for %H requested by '%Y'",
+//				 requested, id);
+//		}
+//	}
+//	enumerator->destroy(enumerator);
+//
+//	charon->bus->assign_vips(charon->bus, this->ike_sa, TRUE);
+//
+//	/* query registered providers for additional attributes to include */
+//	enumerator = charon->attributes->create_responder_enumerator(
+//								charon->attributes, pools, this->ike_sa, vips);
+//	while (enumerator->enumerate(enumerator, &type, &value))
+//	{
+//		cp->add_attribute(cp,
+//			configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE,
+//												 type, value));
+//	}
+//	enumerator->destroy(enumerator);
+//	/* if a client did not re-request all addresses, release them */
+//	enumerator = migrated->create_enumerator(migrated);
+//	while (enumerator->enumerate(enumerator, &found))
+//	{
+//		charon->attributes->release_address(charon->attributes,
+//											pools, found, this->ike_sa);
+//	}
+//	enumerator->destroy(enumerator);
+//	migrated->destroy_offset(migrated, offsetof(host_t, destroy));
+//	vips->destroy_offset(vips, offsetof(host_t, destroy));
+//	pools->destroy(pools);
+//
+//	cp->set_identifier(cp, this->identifier);
+//	message->add_payload(message, (payload_t*)cp);
+//
+//	return SUCCESS;
+//}
 
 
 static status_t sonicwall_build_ack(private_mode_config_t *this, message_t *message)
 {
     cp_payload_t *cp;
-    enumerator_t *enumerator;
-    host_t *host;
-    configuration_attribute_type_t type;
-    entry_t *entry;
 
     cp = cp_payload_create_type(PLV1_CONFIGURATION, ISAKMP_SW_POLICY_ACK);
 
@@ -1021,68 +1025,68 @@ static status_t sonicwall_build_ack(private_mode_config_t *this, message_t *mess
 /**
  * Build CFG_ACK for a received CFG_SET
  */
-static status_t build_ack(private_mode_config_t *this, message_t *message)
-{
-	cp_payload_t *cp;
-	enumerator_t *enumerator;
-	host_t *host;
-	configuration_attribute_type_t type;
-	entry_t *entry;
+//static status_t build_ack(private_mode_config_t *this, message_t *message)
+//{
+//	cp_payload_t *cp;
+//	enumerator_t *enumerator;
+//	host_t *host;
+//	configuration_attribute_type_t type;
+//	entry_t *entry;
+//
+//	cp = cp_payload_create_type(PLV1_CONFIGURATION, CFG_ACK);
+//
+//	/* return empty attributes for installed IPs */
+//
+//	enumerator = this->vips->create_enumerator(this->vips);
+//	while (enumerator->enumerate(enumerator, &host))
+//	{
+//		if (host->get_family(host) == AF_INET6)
+//		{
+//			type = INTERNAL_IP6_ADDRESS;
+//		}
+//		else
+//		{
+//			type = INTERNAL_IP4_ADDRESS;
+//		}
+//		cp->add_attribute(cp, configuration_attribute_create_chunk(
+//								PLV1_CONFIGURATION_ATTRIBUTE, type, chunk_empty));
+//	}
+//	enumerator->destroy(enumerator);
+//
+//	enumerator = this->attributes->create_enumerator(this->attributes);
+//	while (enumerator->enumerate(enumerator, &entry))
+//	{
+//		cp->add_attribute(cp,
+//			configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE,
+//												 entry->type, chunk_empty));
+//	}
+//	enumerator->destroy(enumerator);
+//
+//	cp->set_identifier(cp, this->identifier);
+//	message->add_payload(message, (payload_t*)cp);
+//
+//	return SUCCESS;
+//}
 
-	cp = cp_payload_create_type(PLV1_CONFIGURATION, CFG_ACK);
-
-	/* return empty attributes for installed IPs */
-
-	enumerator = this->vips->create_enumerator(this->vips);
-	while (enumerator->enumerate(enumerator, &host))
-	{
-		if (host->get_family(host) == AF_INET6)
-		{
-			type = INTERNAL_IP6_ADDRESS;
-		}
-		else
-		{
-			type = INTERNAL_IP4_ADDRESS;
-		}
-		cp->add_attribute(cp, configuration_attribute_create_chunk(
-								PLV1_CONFIGURATION_ATTRIBUTE, type, chunk_empty));
-	}
-	enumerator->destroy(enumerator);
-
-	enumerator = this->attributes->create_enumerator(this->attributes);
-	while (enumerator->enumerate(enumerator, &entry))
-	{
-		cp->add_attribute(cp,
-			configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE,
-												 entry->type, chunk_empty));
-	}
-	enumerator->destroy(enumerator);
-
-	cp->set_identifier(cp, this->identifier);
-	message->add_payload(message, (payload_t*)cp);
-
-	return SUCCESS;
-}
-
-
-static status_t build_version_reply_hzhou(private_mode_config_t *this, message_t *message) {
-    DBG0(DBG_IKE, "building SW_POLICY_VERSION_REPLY");
-
-    cp_payload_t *cp = cp_payload_create_type(PLV1_CONFIGURATION, ISAKMP_SW_POLICY_VERSION_REPLY);
-    chunk_t val1 = chunk_alloc(20);
-    memset(val1.ptr, 0, val1.len);
-    cp->add_attribute(cp, configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE, ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_VERSION, val1));
-    chunk_t val2 = chunk_from_chars('0','0','-','5','0','-','5','6','-','8','9','-');
-    cp->add_attribute(cp, configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE, ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_REGISTRATION_ID, val2));
-    uint8_t raw3[] = { 0x00, 0x05, 0x00, 0x00, 0x00, 0x23, 0xfb }; // 000500000023fb
-    chunk_t val3 = chunk_create(raw3, sizeof(raw3));
-    cp->add_attribute(cp, configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE, ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_CLIENT_RELEASE_ID, val3));
-
-    cp->set_identifier(cp, this->identifier);
-    message->add_payload(message, (payload_t*)cp);
-
-    return SUCCESS;
-}
+//
+//static status_t build_version_reply_hzhou(private_mode_config_t *this, message_t *message) {
+//    DBG0(DBG_IKE, "building SW_POLICY_VERSION_REPLY");
+//
+//    cp_payload_t *cp = cp_payload_create_type(PLV1_CONFIGURATION, ISAKMP_SW_POLICY_VERSION_REPLY);
+//    chunk_t val1 = chunk_alloc(20);
+//    memset(val1.ptr, 0, val1.len);
+//    cp->add_attribute(cp, configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE, ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_VERSION, val1));
+//    chunk_t val2 = chunk_from_chars('0','0','-','5','0','-','5','6','-','8','9','-');
+//    cp->add_attribute(cp, configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE, ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_REGISTRATION_ID, val2));
+//    uint8_t raw3[] = { 0x00, 0x05, 0x00, 0x00, 0x00, 0x23, 0xfb }; // 000500000023fb
+//    chunk_t val3 = chunk_create(raw3, sizeof(raw3));
+//    cp->add_attribute(cp, configuration_attribute_create_chunk(PLV1_CONFIGURATION_ATTRIBUTE, ISAKMP_MODECFG_ATTRIB_SONICWALL_POLICY_CLIENT_RELEASE_ID, val3));
+//
+//    cp->set_identifier(cp, this->identifier);
+//    message->add_payload(message, (payload_t*)cp);
+//
+//    return SUCCESS;
+//}
 
 static status_t sonicwall_build_reply(private_mode_config_t *this, message_t *message)
 {

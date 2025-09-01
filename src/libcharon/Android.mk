@@ -248,6 +248,8 @@ LOCAL_SRC_FILES += $(call add_plugin, kernel-pfkey)
 
 LOCAL_SRC_FILES += $(call add_plugin, kernel-netlink)
 
+LOCAL_SRC_FILES += $(call add_plugin, kernel-libipsec)
+
 LOCAL_SRC_FILES += $(call add_plugin, socket-default)
 
 LOCAL_SRC_FILES += $(call add_plugin, socket-dynamic)
@@ -262,6 +264,9 @@ endif
 LOCAL_C_INCLUDES += \
 	$(strongswan_PATH)/src/libstrongswan
 
+LOCAL_C_INCLUDES += \
+    	$(strongswan_PATH)/src/libipsec
+
 LOCAL_CFLAGS := $(strongswan_CFLAGS)
 
 LOCAL_MODULE := libcharon
@@ -273,5 +278,7 @@ LOCAL_ARM_MODE := arm
 LOCAL_PRELINK_MODULE := false
 
 LOCAL_SHARED_LIBRARIES += libstrongswan
+
+LOCAL_SHARED_LIBRARIES += libipsec
 
 include $(BUILD_SHARED_LIBRARY)

@@ -198,14 +198,6 @@ static int fake_getaddrinfo(const char *hostname,
     *res = ai;
     return 0; // success
 }
-
-static void fake_freeaddrinfo(struct addrinfo *res)
-{
-    if (!res) return;
-    free(res->ai_canonname);
-    free(res->ai_addr);
-    free(res);
-}
 /**
  * Main function of resolver threads
  */

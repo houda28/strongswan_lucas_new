@@ -170,7 +170,7 @@ AM_LDFLAGS = \
 
 libcharon_la_LIBADD = \
   $(top_builddir)/src/libstrongswan/libstrongswan.la \
-  -lm $(PTHREADLIB) $(ATOMICLIB) $(DLLIB) $(SOCKLIB)
+  -lm $(PTHREADLIB) $(ATOMICLIB) $(DLLIB) $(SOCKLIB) -lz
 
 if USE_WINDOWS
   libcharon_la_LIBADD += -lws2_32

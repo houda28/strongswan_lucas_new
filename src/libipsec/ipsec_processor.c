@@ -95,7 +95,8 @@ static job_requeue_t process_inbound(private_ipsec_processor_t *this)
 	ip_packet_t *ip_packet;
 	ipsec_sa_t *sa;
 	uint8_t next_header;
-	uint32_t spi, reqid;
+	uint32_t spi;
+    //uint32_t reqid;
 
 	packet = (esp_packet_t*)this->inbound_queue->dequeue(this->inbound_queue);
 
@@ -130,8 +131,18 @@ static job_requeue_t process_inbound(private_ipsec_processor_t *this)
 	}
 	ip_packet = packet->get_payload(packet);
 	sa->update_usestats(sa, ip_packet->get_encoding(ip_packet).len);
-	reqid = sa->get_reqid(sa);
+	//reqid = sa->get_reqid(sa);
 	ipsec->sas->checkin(ipsec->sas, sa);
+
+	//------SonicWall--------
+	// host_t *dest = ip_packet->get_destination(ip_packet);
+	// if (dest->get_port(dest) == 68) {
+	// 	DBG1(DBG_ESP, "get a dhcp packet, skip the policy check");
+	// 	deliver_inbound(this, packet);
+	// 	packet->destroy(packet);
+	// 	return JOB_REQUEUE_DIRECT;
+	// }
+	//-----------------------
 
 	next_header = packet->get_next_header(packet);
 	switch (next_header)
@@ -139,14 +150,16 @@ static job_requeue_t process_inbound(private_ipsec_processor_t *this)
 		case IPPROTO_IPIP:
 		case IPPROTO_IPV6:
 		{
-			ipsec_policy_t *policy;
 
-			policy = ipsec->policies->find_by_packet(ipsec->policies,
-													 ip_packet, TRUE, reqid);
-			if (policy)
+//			ipsec_policy_t *policy;
+
+//			policy = ipsec->policies->find_by_packet(ipsec->policies,
+//													 ip_packet, TRUE, reqid);
+			// --------SonicWall------
+			//if (policy)
 			{
 				deliver_inbound(this, packet);
-				policy->destroy(policy);
+				//policy->destroy(policy);
 				break;
 			}
 			DBG1(DBG_ESP, "discarding inbound IP packet %#H == %#H [%hhu] due "
@@ -162,6 +175,7 @@ static job_requeue_t process_inbound(private_ipsec_processor_t *this)
 			packet->destroy(packet);
 			break;
 	}
+
 	return JOB_REQUEUE_DIRECT;
 }
 
@@ -342,3 +356,4 @@ ipsec_processor_t *ipsec_processor_create()
 									NULL, callback_job_cancel_thread));
 	return &this->public;
 }
+

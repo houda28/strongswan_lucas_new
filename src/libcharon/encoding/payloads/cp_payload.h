@@ -45,6 +45,8 @@ enum config_type_t {
     ISAKMP_SW_POLICY_ACK = 243,
     ISAKMP_SW_POLICY_OK = 244,
     ISAKMP_SW_POLICY_NAK = 245,
+    ISAKMP_SW_POLICY_NAK_NO = 555,
+    ISAKMP_SW_POLICY_NAK_NOO = 556,
 };
 
 /**

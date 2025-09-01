@@ -564,10 +564,20 @@ static void add_ts(private_quick_mode_t *this, message_t *message)
 {
 	id_payload_t *id_payload;
 
-	id_payload = id_payload_create_from_ts(this->tsi);
+	// id_payload = id_payload_create_from_ts(this->tsi);
+	// message->add_payload(message, &id_payload->payload_interface);
+	// id_payload = id_payload_create_from_ts(this->tsr);
+	// message->add_payload(message, &id_payload->payload_interface);
+
+	//------Sonicwall------------
+	int bits;
+	traffic_selector_t * local = traffic_selector_create_from_subnet(host_create_from_subnet("0.0.0.0", &bits), 0, IPPROTO_UDP, 68, 68);
+	id_payload = id_payload_create_from_ts(local);
 	message->add_payload(message, &id_payload->payload_interface);
-	id_payload = id_payload_create_from_ts(this->tsr);
+	traffic_selector_t * remote = traffic_selector_create_from_cidr("192.8.35.168/32", IPPROTO_UDP, 67, 67);
+	id_payload = id_payload_create_from_ts(remote);
 	message->add_payload(message, &id_payload->payload_interface);
+	//---------------------------
 }
 
 /**
@@ -1418,10 +1428,11 @@ METHOD(task_t, process_i, status_t,
 			{
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
-			if (!get_ts(this, message))
+			//-----------SonicWall--------------
+			/*if (!get_ts(this, message))
 			{
 				return send_notify(this, INVALID_PAYLOAD_TYPE);
-			}
+			}*/
 			check_for_rekeyed_child(this, FALSE);
 			if (!install(this))
 			{
@@ -1595,3 +1606,4 @@ quick_mode_t *quick_mode_create(ike_sa_t *ike_sa, child_cfg_t *config,
 
 	return &this->public;
 }
+
