@@ -38,7 +38,23 @@ struct private_vpnservice_builder_t {
 	 * Java object
 	 */
 	jobject builder;
+
+    uint32_t associate_ike_sa_id;
 };
+
+
+METHOD(vpnservice_builder_t, set_associate_ike_sa_id, void,
+       private_vpnservice_builder_t *this, uint32_t associate_ike_sa_id) {
+
+    this->associate_ike_sa_id = associate_ike_sa_id;
+}
+
+METHOD(vpnservice_builder_t, get_associate_ike_sa_id, uint32_t,
+       private_vpnservice_builder_t *this) {
+
+    return this->associate_ike_sa_id;
+}
+
 
 METHOD(vpnservice_builder_t, add_address, bool,
 	private_vpnservice_builder_t *this, host_t *addr)
@@ -269,6 +285,8 @@ vpnservice_builder_t *vpnservice_builder_create(jobject builder)
 			.establish = _establish,
 			.establish_no_dns = _establish_no_dns,
 			.destroy = _destroy,
+            .set_associate_ike_sa_id = _set_associate_ike_sa_id,
+            .get_associate_ike_sa_id = _get_associate_ike_sa_id,
 		},
 	);
 

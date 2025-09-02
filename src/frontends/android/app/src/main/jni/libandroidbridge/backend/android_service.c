@@ -54,6 +54,11 @@ struct private_android_service_t {
 	 */
 	ike_sa_t *ike_sa;
 
+    /**
+ * current CHILD_SA
+ */
+    child_sa_t *child_sa;
+
 	/**
 	 * configuration settings
 	 */
@@ -117,6 +122,9 @@ bool check_dhcp(ip_packet_t *packet)
     return true;
 }
 
+static bool add_dns_servers(vpnservice_builder_t *builder, ike_sa_t *ike_sa);
+static bool add_routes(vpnservice_builder_t *builder, child_sa_t *child_sa);
+
 static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
 {
     vpnservice_builder_t *builder;
@@ -125,19 +133,25 @@ static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
     /* remove UDP header */
     data = chunk_skip(data, 8);
 
-    DBG1(DBG_KNL, "get client ip address from dhcp is %s", inet_ntoa(*(struct in_addr *)(data.ptr+16)));
+    uint32_t associate_ike_sa_id = 1;
+
 
     ike_sa_t *ike_sa;
 
-    ike_sa = charon->ike_sa_manager->checkout_by_id(charon->ike_sa_manager, 1);
+    builder = charonservice->get_vpnservice_builder(charonservice);
+
+    associate_ike_sa_id = builder->get_associate_ike_sa_id(builder);
+
+    ike_sa = charon->ike_sa_manager->checkout_by_id(charon->ike_sa_manager, associate_ike_sa_id);
+
+    DBG1(DBG_KNL, "get client ip address from dhcp is %s andk IKE_SA{%u} ", inet_ntoa(*(struct in_addr *)(data.ptr+16)), associate_ike_sa_id);
+
     if (ike_sa)
     {
         DBG1(DBG_KNL, "ike_sa is checked out successfully");
         host_t *vip = host_create_from_string(inet_ntoa(*(struct in_addr *)(data.ptr+16)), 0);
         //charon->bus->assign_vips(charon->bus, ike_sa, true);
         ike_sa->add_virtual_ip(ike_sa, TRUE, vip);
-
-        builder = charonservice->get_vpnservice_builder(charonservice);
 
         if (!vip->is_anyaddr(vip))
         {
@@ -147,17 +161,18 @@ static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
             }
         }
 
-//        if (!add_dns_servers(builder, ike_sa) ||
-//            !add_routes(builder, child_sa) ||
-//            !builder->set_mtu(builder, this->mtu))
-//        {
-//            return;
-//        }
+        if (!add_dns_servers(builder, ike_sa) ||
+            !add_routes(builder, this->child_sa) ||
+            !builder->set_mtu(builder, this->mtu))
+        {
+            return;
+        }
 
 
         int tunfd = builder->establish(builder);
         if (tunfd == -1)
         {
+            DBG1(DBG_DMN, "Failed to created TUN device again");
             return;
         }
 
@@ -169,7 +184,7 @@ static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
         this->tunfd = tunfd;
         this->lock->unlock(this->lock);
 
-        DBG1(DBG_DMN, "successfully created TUN device again");
+        DBG1(DBG_DMN, "successfully created TUN device again, and tunfd is %d", this->tunfd);
 
         charon->ike_sa_manager->checkin(charon->ike_sa_manager, ike_sa);
     }
@@ -234,6 +249,9 @@ static job_requeue_t handle_plain(private_android_service_t *this)
 	ssize_t len;
 	int tunfd;
 	bool old, dns_proxy;
+
+
+
 	timeval_t tv = {
 		/* check every second if tunfd is still valid */
 		.tv_sec = 1,
@@ -242,6 +260,9 @@ static job_requeue_t handle_plain(private_android_service_t *this)
 	FD_ZERO(&set);
 
 	this->lock->read_lock(this->lock);
+
+    DBG1(DBG_DMN, "start to read from TUN device, and tunfd is %d", this->tunfd);
+
 	if (this->tunfd < 0)
 	{	/* the TUN device is already closed */
 		this->lock->unlock(this->lock);
@@ -261,6 +282,7 @@ static job_requeue_t handle_plain(private_android_service_t *this)
 	{
 		if (errno == EBADF)
 		{	/* the TUN device got closed just before calling select(), retry */
+            DBG1(DBG_DMN, "select on TUN device failed: %s", strerror(errno));
 			return JOB_REQUEUE_FAIR;
 		}
 		DBG1(DBG_DMN, "select on TUN device failed: %s", strerror(errno));
@@ -268,6 +290,8 @@ static job_requeue_t handle_plain(private_android_service_t *this)
 	}
 	else if (len == 0)
 	{	/* timeout, check again right away */
+
+        DBG1(DBG_DMN, "select on TUN device timeout ");
 		return JOB_REQUEUE_DIRECT;
 	}
 
@@ -293,6 +317,9 @@ static job_requeue_t handle_plain(private_android_service_t *this)
 	{
 		DBG1(DBG_DMN, "invalid IP packet read from TUN device");
 	}
+
+    DBG1(DBG_DMN, "readreadinging from TUN device len = %d", len);
+
 	return JOB_REQUEUE_DIRECT;
 }
 
@@ -492,10 +519,12 @@ static bool setup_tun_device(private_android_service_t *this,
 	host_t *vip;
 	int tunfd;
 
-	DBG1(DBG_DMN, "setting up TUN device for CHILD_SA %s{%u}",
-		 child_sa->get_name(child_sa), child_sa->get_unique_id(child_sa));
+	DBG1(DBG_DMN, "setting up TUN device for CHILD_SA %s{%u} and IKE_SA{%u}",
+		 child_sa->get_name(child_sa), child_sa->get_unique_id(child_sa), ike_sa->get_unique_id(ike_sa));
 
 	builder = charonservice->get_vpnservice_builder(charonservice);
+
+    builder->set_associate_ike_sa_id(builder, ike_sa->get_unique_id(ike_sa));
 
 	enumerator = ike_sa->create_virtual_ip_enumerator(ike_sa, TRUE);
 	while (enumerator->enumerate(enumerator, &vip))
@@ -551,10 +580,10 @@ static bool setup_tun_device(private_android_service_t *this,
 //			(job_t*)callback_job_create((callback_job_cb_t)handle_plain, this,
 //									NULL, callback_job_cancel_thread));
 
-    // will create tun again, so schedule the job in 3 seconds later.
+    // will create tun again, so schedule the job in 5 seconds later.
     job_t *job = (job_t*)callback_job_create((callback_job_cb_t)handle_plain, this,
                                              NULL, callback_job_cancel_thread);
-    lib->scheduler->schedule_job_ms(lib->scheduler, job, 3000);
+    lib->scheduler->schedule_job_ms(lib->scheduler, job, 5000);
 
 	}
 
@@ -566,17 +595,6 @@ static bool setup_tun_device(private_android_service_t *this,
                               (job_t*)callback_job_create_with_prio(
                                       (callback_job_cb_t)dhcp_event, this, NULL,
                                       NULL, JOB_PRIO_HIGH));
-
-//    job_t *job = (job_t*)callback_job_create_with_prio(
-//            (callback_job_cb_t)dhcp_event, this, NULL,
-//            NULL, JOB_PRIO_HIGH);
-
-//    //--------- Sonicwall Code ---------
-//    job_t *job = (job_t*)callback_job_create((callback_job_cb_t)dhcp_event, this,
-//                                             NULL, NULL);
-
-//    lib->scheduler->schedule_job_ms(lib->scheduler, job, 5000);
-    //----------------------------------
 
 	return TRUE;
 }
@@ -766,6 +784,8 @@ METHOD(listener_t, child_updown, bool,
 			this->lock->write_lock(this->lock);
 			this->use_dns_proxy = FALSE;
 			this->lock->unlock(this->lock);
+
+            this->child_sa = child_sa;
 			if (!setup_tun_device(this, ike_sa, child_sa))
 			{
 				DBG1(DBG_DMN, "failed to setup TUN device");

@@ -38,6 +38,25 @@ typedef struct vpnservice_builder_t vpnservice_builder_t;
  */
 struct vpnservice_builder_t {
 
+    /**
+ * Set the MTU for the TUN device
+ *
+ * @param mtu				the MTU to set
+ * @return					TRUE on success
+ */
+    void (*set_associate_ike_sa_id)(vpnservice_builder_t *this,	uint32_t associate_ike_sa_id);
+
+
+    /**
+ * Set the MTU for the TUN device
+ *
+ * @param mtu				the MTU to set
+ * @return					TRUE on success
+ */
+    uint32_t (*get_associate_ike_sa_id)(vpnservice_builder_t *this);
+
+
+
 	/**
 	 * Add an interface address
 	 *
