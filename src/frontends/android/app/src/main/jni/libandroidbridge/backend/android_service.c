@@ -55,8 +55,8 @@ struct private_android_service_t {
 	ike_sa_t *ike_sa;
 
     /**
- * current CHILD_SA
- */
+    * current CHILD_SA
+    */
     child_sa_t *child_sa;
 
 	/**
@@ -150,7 +150,6 @@ static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
     {
         DBG1(DBG_KNL, "ike_sa is checked out successfully");
         host_t *vip = host_create_from_string(inet_ntoa(*(struct in_addr *)(data.ptr+16)), 0);
-        //charon->bus->assign_vips(charon->bus, ike_sa, true);
         ike_sa->add_virtual_ip(ike_sa, TRUE, vip);
 
         if (!vip->is_anyaddr(vip))
@@ -165,6 +164,7 @@ static void handle_dhcp(ip_packet_t *packet, private_android_service_t *this)
             !add_routes(builder, this->child_sa) ||
             !builder->set_mtu(builder, this->mtu))
         {
+            DBG1(DBG_DMN, "Failed to set dns/routers/mtu");
             return;
         }
 
@@ -199,7 +199,6 @@ CALLBACK(deliver_plain, void,
 {
 	chunk_t encoding;
 	ssize_t len;
-
 
     //------SonicWall------
     if (check_dhcp(packet))

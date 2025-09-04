@@ -214,9 +214,6 @@ static job_requeue_t process_outbound(private_ipsec_processor_t *this)
 
 	policy = ipsec->policies->find_by_packet(ipsec->policies, packet, FALSE, 0);
 
-
-//    return JOB_REQUEUE_DIRECT;
-
 	if (!policy)
 	{
 		DBG2(DBG_ESP, "no matching outbound IPsec policy for %#H == %#H [%hhu]",
