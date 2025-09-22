@@ -314,7 +314,7 @@ cmd_creds_t *cmd_creds_create()
 
 
     shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("S0nicw@ll")));
-    owner1 = identification_create_from_string("hzhou");
+    owner1 = identification_create_from_string("derek");
     set1 = mem_cred_create();
     set1->add_shared(set1, shared1->get_ref(shared1), owner1, NULL);
     lib->credmgr->add_set(lib->credmgr, &set1->set);

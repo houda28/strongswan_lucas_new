@@ -1098,6 +1098,7 @@ static job_requeue_t initiate(private_android_service_t *this)
 	peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET));
 	peer_cfg->add_virtual_ip(peer_cfg, host_create_any(AF_INET6));
 
+
 	type = this->settings->get_str(this->settings, "connection.type", NULL);
 	/* local auth config */
 //	if (streq("ikev2-cert", type) ||
@@ -1145,10 +1146,36 @@ static job_requeue_t initiate(private_android_service_t *this)
 
 	remote_id = this->settings->get_str(this->settings, "connection.remote_id",
 										NULL);
-    add_auth_cfg(peer_cfg, TRUE, "GroupVPN", AUTH_CLASS_PSK);
-    add_auth_cfg(peer_cfg, TRUE, "hzhou", AUTH_CLASS_XAUTH);
-    add_auth_cfg(peer_cfg, FALSE, "18C241825BEA", AUTH_CLASS_PSK);
+//    add_auth_cfg(peer_cfg, TRUE, "GroupVPN", AUTH_CLASS_PSK);
 
+    {
+        if (!add_auth_cfg_cert(this, peer_cfg))
+        {
+            peer_cfg->destroy(peer_cfg);
+            charonservice->update_status(charonservice,
+                                         CHARONSERVICE_CERTIFICATE_UNAVAILABLE);
+            return JOB_REQUEUE_NONE;
+        }
+    }
+
+    add_auth_cfg(peer_cfg, TRUE, "derek", AUTH_CLASS_XAUTH);
+
+
+
+    auth = auth_cfg_create();
+    auth->add(auth, AUTH_RULE_IDENTITY, identification_create_from_string("san.emily.beta.0x2.link"));
+    auth->add(auth, AUTH_RULE_AUTH_CLASS, AUTH_CLASS_PUBKEY);
+    auth->add(auth, AUTH_RULE_IDENTITY_LOOSE, TRUE);
+    peer_cfg->add_auth_cfg(peer_cfg, auth, FALSE);
+
+    add_auth_cfg(peer_cfg, FALSE, "%any", AUTH_CLASS_PSK);
+
+    //add_auth_cfg(peer_cfg, FALSE, "vpn.example.com", AUTH_CLASS_PSK);
+
+
+
+//    add_auth_cfg(peer_cfg, FALSE, "18C241825BEA", AUTH_CLASS_PUBKEY);
+//
 
 
 

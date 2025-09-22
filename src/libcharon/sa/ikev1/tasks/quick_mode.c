@@ -574,7 +574,9 @@ static void add_ts(private_quick_mode_t *this, message_t *message)
 	traffic_selector_t * local = traffic_selector_create_from_subnet(host_create_from_subnet("0.0.0.0", &bits), 0, IPPROTO_UDP, 68, 68);
 	id_payload = id_payload_create_from_ts(local);
 	message->add_payload(message, &id_payload->payload_interface);
-	traffic_selector_t * remote = traffic_selector_create_from_cidr("192.8.35.168/32", IPPROTO_UDP, 67, 67);
+	//traffic_selector_t * remote = traffic_selector_create_from_cidr("192.8.35.168/32", IPPROTO_UDP, 67, 67);
+    traffic_selector_t * remote = traffic_selector_create_from_cidr("192.168.168.168/32", IPPROTO_UDP, 67, 67);
+
 	id_payload = id_payload_create_from_ts(remote);
 	message->add_payload(message, &id_payload->payload_interface);
 	//---------------------------

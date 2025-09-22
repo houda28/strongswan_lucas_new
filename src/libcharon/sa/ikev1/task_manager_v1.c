@@ -466,7 +466,7 @@ METHOD(task_manager_t, initiate, status_t,
 
 	if (this->active_tasks->get_count(this->active_tasks) == 0)
 	{
-		DBG2(DBG_IKE, "activating new tasks");
+		DBG2(DBG_IKE, "activating new tasks, and state is ");
 		switch (this->ike_sa->get_state(this->ike_sa))
 		{
 			case IKE_CREATED:

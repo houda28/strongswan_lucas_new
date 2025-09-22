@@ -378,6 +378,9 @@ static void build_certreqs(private_isakmp_cert_pre_t *this, message_t *message)
 		}
 		enumerator->destroy(enumerator);
 	}
+
+    return;
+
 	if (!message->get_payload(message, PLV1_CERTREQ))
 	{
 		/* otherwise add all trusted CA certificates */
