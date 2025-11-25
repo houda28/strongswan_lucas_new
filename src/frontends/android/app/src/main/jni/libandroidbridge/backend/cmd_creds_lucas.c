@@ -96,10 +96,9 @@ static shared_key_t* callback_shared(private_cmd_creds_t *this,
 			return NULL;
 	}
 
-    // At the top of the file or in a relevant struct
-    static android_bridge_t *s_bridge;
 
-    pwd = lib->information->get_password(lib->information, label);
+    android_information_manager_t *android_information_manager = android_information_manager_create();
+    pwd = android_information_manager->get_password(android_information_manager, label);
 #ifdef HAVE_GETPASS
 	pwd = getpass(label);
 #endif
@@ -320,7 +319,7 @@ cmd_creds_t *cmd_creds_create()
 //    lib->credmgr->add_set(lib->credmgr, &set2->set);
 
 
-    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("S0nicw@ll1")));
+    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("S0nicw@llx")));
     owner1 = identification_create_from_string("derek");
     set1 = mem_cred_create();
     set1->add_shared(set1, shared1->get_ref(shared1), owner1, NULL);

@@ -46,6 +46,7 @@
 extern jclass *android_charonvpnservice_class;
 extern jclass *android_charonvpnservice_builder_class;
 extern jclass *android_simple_fetcher_class;
+extern jclass *android_information_manager_class;
 
 /**
  * SDK versions for which we need some special handling.

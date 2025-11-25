@@ -46,6 +46,8 @@ static struct {
 jclass *android_charonvpnservice_class;
 jclass *android_charonvpnservice_builder_class;
 jclass *android_simple_fetcher_class;
+jclass *android_information_manager_class;
+
 android_sdk_version_t android_sdk_version;
 char *android_version_string;
 char *android_device_string;
@@ -131,6 +133,10 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 	android_simple_fetcher_class =
 				(*env)->NewGlobalRef(env, (*env)->FindClass(env,
 						JNI_PACKAGE_STRING "/SimpleFetcher"));
+
+    android_information_manager_class =
+            (*env)->NewGlobalRef(env, (*env)->FindClass(env,
+                        JNI_PACKAGE_STRING "/InformationManager"));
 
 	jversion = (*env)->FindClass(env, "android/os/Build$VERSION");
 	jsdk_int = (*env)->GetStaticFieldID(env, jversion, "SDK_INT", "I");

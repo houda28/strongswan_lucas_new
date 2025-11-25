@@ -35,7 +35,7 @@ public class InformationManager {
 	 * @param label The title/message for the dialog (e.g., "XAuth Password").
 	 * @return The entered password, or null if the user cancels.
 	 */
-	public String requestPasswordFromUi(final String label) {
+	public static String requestPasswordFromUi(final String label) {
 		if (myActivity == null) {
 			return null;
 		}

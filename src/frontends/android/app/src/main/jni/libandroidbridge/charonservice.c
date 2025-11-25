@@ -703,8 +703,6 @@ JNI_METHOD(CharonVpnService, initializeCharon, jboolean,
 		lib->scheduler = android_scheduler_create(this, lib->scheduler);
 	}
 
-    lib->information = android_bridge_create(this);
-
 	/* set options before initializing other libraries that might read them */
 	logfile = androidjni_convert_jstring(env, jlogfile);
 
