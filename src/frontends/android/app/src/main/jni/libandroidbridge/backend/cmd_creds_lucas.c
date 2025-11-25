@@ -62,6 +62,7 @@ struct private_cmd_creds_t {
 	char *identity;
 };
 
+#include "android_information_manager.h"
 /**
  * Callback function to prompt for secret
  */
@@ -94,9 +95,15 @@ static shared_key_t* callback_shared(private_cmd_creds_t *this,
 		default:
 			return NULL;
 	}
+
+    // At the top of the file or in a relevant struct
+    static android_bridge_t *s_bridge;
+
+    pwd = lib->information->get_password(lib->information, label);
 #ifdef HAVE_GETPASS
 	pwd = getpass(label);
 #endif
+
 	if (!pwd || strlen(pwd) == 0)
 	{
 		return NULL;
@@ -313,19 +320,19 @@ cmd_creds_t *cmd_creds_create()
 //    lib->credmgr->add_set(lib->credmgr, &set2->set);
 
 
-    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("S0nicw@ll")));
+    shared1 = shared_key_create(SHARED_EAP, chunk_clone(chunk_from_str("S0nicw@ll1")));
     owner1 = identification_create_from_string("derek");
     set1 = mem_cred_create();
     set1->add_shared(set1, shared1->get_ref(shared1), owner1, NULL);
     lib->credmgr->add_set(lib->credmgr, &set1->set);
 
-    shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("12345678")));
-
-    //shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("S0nicwall")));
-    owner2 = identification_create_from_string("18C241825BEA");
-    set2 = mem_cred_create();
-    set2->add_shared(set2, shared2->get_ref(shared2), owner2, NULL);
-    lib->credmgr->add_set(lib->credmgr, &set2->set);
+//    shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("12345678")));
+//
+//    //shared2 = shared_key_create(SHARED_IKE, chunk_clone(chunk_from_str("S0nicwall")));
+//    owner2 = identification_create_from_string("18C241825BEA");
+//    set2 = mem_cred_create();
+//    set2->add_shared(set2, shared2->get_ref(shared2), owner2, NULL);
+//    lib->credmgr->add_set(lib->credmgr, &set2->set);
 
 	return &this->public;
 }

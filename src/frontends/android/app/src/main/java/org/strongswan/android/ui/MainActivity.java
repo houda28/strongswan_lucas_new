@@ -31,6 +31,7 @@ import org.strongswan.android.R;
 import org.strongswan.android.data.ManagedConfiguration;
 import org.strongswan.android.data.ManagedConfigurationService;
 import org.strongswan.android.data.VpnProfile;
+import org.strongswan.android.logic.InformationManager;
 import org.strongswan.android.logic.StrongSwanApplication;
 import org.strongswan.android.logic.TrustedCertificateManager;
 import org.strongswan.android.ui.VpnProfileListFragment.OnVpnProfileSelectedListener;
@@ -76,6 +77,8 @@ public class MainActivity extends AppCompatActivity implements OnVpnProfileSelec
 		((StrongSwanApplication)getApplication()).getExecutor().execute(() -> {
 			TrustedCertificateManager.getInstance().load();
 		});
+
+		InformationManager.initialize(this);
 
 		mManagedConfigurationService = StrongSwanApplication.getInstance().getManagedConfigurationService();
 	}

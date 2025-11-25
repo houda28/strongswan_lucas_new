@@ -165,9 +165,11 @@ METHOD(private_key_t, sign, bool,
 	jmethodID method_id;
 	const char *method = NULL;
 	rsa_pss_params_t *pss = NULL;
-	jstring jmethod;
+	jstring jmethod = NULL;
 	jobject jsignature;
-	jbyteArray jdata, jsigarray;
+	jbyteArray jdata = NULL;
+    jbyteArray jsigarray= NULL;
+    const char *methodxxx = NULL;
 
 	switch (this->pubkey->get_type(this->pubkey))
 	{

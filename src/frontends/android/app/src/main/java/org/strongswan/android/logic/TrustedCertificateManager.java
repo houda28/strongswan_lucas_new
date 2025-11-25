@@ -198,6 +198,8 @@ public class TrustedCertificateManager
 	{
 		try
 		{
+			Log.d(TAG, "fetchCertificates type : " + store.getType());
+
 			Enumeration<String> aliases = store.aliases();
 			while (aliases.hasMoreElements())
 			{
@@ -206,6 +208,7 @@ public class TrustedCertificateManager
 				cert = store.getCertificate(alias);
 				if (cert != null && cert instanceof X509Certificate)
 				{
+					Log.d(TAG, "fetchCertificates " + ((X509Certificate) cert).getIssuerDN());
 					certs.put(alias, (X509Certificate)cert);
 				}
 			}

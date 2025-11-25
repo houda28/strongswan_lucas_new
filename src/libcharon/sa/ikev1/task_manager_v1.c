@@ -275,6 +275,8 @@ static bool activate_task(private_task_manager_t *this, task_type_t type)
 	task_t *task;
 	bool found = FALSE;
 
+    DBG2(DBG_IKE, " trying to activating %N task", task_type_names, type);
+
 	enumerator = this->queued_tasks->create_enumerator(this->queued_tasks);
 	while (enumerator->enumerate(enumerator, (void**)&task))
 	{
@@ -466,7 +468,9 @@ METHOD(task_manager_t, initiate, status_t,
 
 	if (this->active_tasks->get_count(this->active_tasks) == 0)
 	{
-		DBG2(DBG_IKE, "activating new tasks, and state is ");
+        DBG2(DBG_IKE, "activating new tasks, and state is %N",
+             ike_sa_state_names, this->ike_sa->get_state(this->ike_sa));
+
 		switch (this->ike_sa->get_state(this->ike_sa))
 		{
 			case IKE_CREATED:
@@ -1065,7 +1069,10 @@ static status_t process_request(private_task_manager_t *this,
 	enumerator = this->passive_tasks->create_enumerator(this->passive_tasks);
 	while (enumerator->enumerate(enumerator, (void*)&task))
 	{
-		switch (task->process(task, message))
+
+        DBG1(DBG_IKE, "process task request run task type %N", task_type_names, task->get_type(task));
+
+        switch (task->process(task, message))
 		{
 			case SUCCESS:
 				/* task completed, remove it */
@@ -1182,6 +1189,8 @@ static status_t process_response(private_task_manager_t *this,
 	enumerator = this->active_tasks->create_enumerator(this->active_tasks);
 	while (enumerator->enumerate(enumerator, (void*)&task))
 	{
+
+        DBG1(DBG_IKE, "process task response run task type %N", task_type_names, task->get_type(task));
 		switch (task->process(task, message))
 		{
 			case SUCCESS:

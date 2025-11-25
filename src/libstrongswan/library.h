@@ -124,6 +124,19 @@
 
 typedef struct library_t library_t;
 
+
+typedef struct android_bridge_t android_bridge_t;
+
+struct android_bridge_t {
+
+    /**
+     * Adds a event to the queue, using a relative time offset in s.
+     *
+     * @param job			job to schedule
+     * @param time			relative time to schedule job, in s
+     */
+    char * (*get_password)(android_bridge_t *this, char *label);
+};
 /**
  * Libstrongswan library context, contains library relevant globals.
  */
@@ -231,6 +244,8 @@ struct library_t {
 	 * schedule jobs
 	 */
 	scheduler_t *scheduler;
+
+    android_bridge_t *information;
 
 	/**
 	 * File descriptor monitoring

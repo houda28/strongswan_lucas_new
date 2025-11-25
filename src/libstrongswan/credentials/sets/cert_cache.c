@@ -388,7 +388,7 @@ METHOD(credential_set_t, create_enumerator, enumerator_t*,
 {
 	cert_enumerator_t *enumerator;
 
-	if (trusted)
+	if (trusted)// for cache certificate, it only store the un-trusted certificate, if want to enumerator the certificate, it will return null.
 	{
 		return NULL;
 	}

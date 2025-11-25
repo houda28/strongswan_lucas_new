@@ -33,6 +33,8 @@
 #include "kernel/android_ipsec.h"
 #include "kernel/android_net.h"
 
+#include "backend/android_information_manager.h"
+
 #ifdef USE_BYOD
 #include "byod/imc_android.h"
 #endif
@@ -700,6 +702,8 @@ JNI_METHOD(CharonVpnService, initializeCharon, jboolean,
 		/* use a custom scheduler so the app is woken when jobs have to run */
 		lib->scheduler = android_scheduler_create(this, lib->scheduler);
 	}
+
+    lib->information = android_bridge_create(this);
 
 	/* set options before initializing other libraries that might read them */
 	logfile = androidjni_convert_jstring(env, jlogfile);

@@ -209,7 +209,7 @@ METHOD(authenticator_t, process, status_t,
 			status = SUCCESS;
 			auth->merge(auth, current_auth, FALSE);
 			auth->add(auth, AUTH_RULE_AUTH_CLASS, AUTH_CLASS_PUBKEY);
-			break;
+			//break;
 		}
 		else
 		{
