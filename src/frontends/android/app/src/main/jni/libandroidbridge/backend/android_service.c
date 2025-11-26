@@ -1188,7 +1188,14 @@ static job_requeue_t initiate(private_android_service_t *this)
 //    //add_auth_cfg(peer_cfg, TRUE, remote_id, AUTH_CLASS_XAUTH);
 //    add_auth_cfg(peer_cfg, FALSE, "vpn.example.com", AUTH_CLASS_PSK);
 
-    creds = cmd_creds_create();
+
+    char *username, *password;
+    username = this->settings->get_str(this->settings, "connection.username",
+                            NULL);
+    password = this->settings->get_str(this->settings, "connection.password",
+                            NULL);
+
+    creds = cmd_creds_create(username, password);
 
 
     child_cfg = child_cfg_create("android", &child);

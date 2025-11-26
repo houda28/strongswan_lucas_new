@@ -51,6 +51,6 @@ struct cmd_creds_t {
 /**
  * Create a cmd_creds instance.
  */
-cmd_creds_t *cmd_creds_create();
+cmd_creds_t *cmd_creds_create(const char *username, const char *password);
 
 #endif /** CMD_CREDS_H_ @}*/
