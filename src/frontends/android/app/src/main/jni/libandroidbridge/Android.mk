@@ -8,8 +8,7 @@ include $(CLEAR_VARS)
 # copy-n-paste from Makefile.am
 LOCAL_SRC_FILES := \
 android_jni.c \
-backend/cmd_options.c \
-backend/cmd_creds_lucas.c \
+backend/prompt_creds.c \
 backend/android_attr.c \
 backend/android_creds.c \
 backend/android_fetcher.c \

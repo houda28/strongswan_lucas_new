@@ -25,6 +25,7 @@
 #define ANDROID_SERVICE_H_
 
 #include "android_creds.h"
+#include "prompt_creds.h"
 
 #include <library.h>
 #include <bus/listeners/listener.h>
@@ -55,7 +56,7 @@ struct android_service_t {
  * @param creds					Android specific credential set
  * @param settings				configuration settings (gets adopted)
  */
-android_service_t *android_service_create(android_creds_t *creds,
+android_service_t *android_service_create(android_creds_t *creds, prompt_creds_t *prompt_creds,
 										  settings_t *settings);
 
 #endif /** ANDROID_SERVICE_H_ @}*/

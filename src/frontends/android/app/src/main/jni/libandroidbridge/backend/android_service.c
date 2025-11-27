@@ -31,6 +31,7 @@
 #include <processing/jobs/callback_job.h>
 #include <threading/rwlock.h>
 #include <threading/thread.h>
+#include "prompt_creds.h"
 
 typedef struct private_android_service_t private_android_service_t;
 
@@ -48,6 +49,10 @@ struct private_android_service_t {
 	 * credential set
 	 */
 	android_creds_t *creds;
+    /**
+     * prompt credentials set
+     */
+    prompt_creds_t *prompt_creds;
 
 	/**
 	 * current IKE_SA
@@ -1024,10 +1029,6 @@ static void add_auth_cfg(peer_cfg_t *peer_cfg, bool local,
 }
 
 
-#include "cmd_creds_lucas.h"
-static cmd_creds_t *creds;
-
-
 static job_requeue_t initiate(private_android_service_t *this)
 {
 	identification_t *gateway = NULL;
@@ -1195,7 +1196,7 @@ static job_requeue_t initiate(private_android_service_t *this)
     password = this->settings->get_str(this->settings, "connection.password",
                             NULL);
 
-    creds = cmd_creds_create(username, password);
+    this->prompt_creds->add_username_password(this->prompt_creds, username, password);
 
 
     child_cfg = child_cfg_create("android", &child);
@@ -1275,7 +1276,7 @@ METHOD(android_service_t, destroy, void,
 /**
  * See header
  */
-android_service_t *android_service_create(android_creds_t *creds,
+android_service_t *android_service_create(android_creds_t *creds, prompt_creds_t *prompt_creds,
 										  settings_t *settings)
 {
 	private_android_service_t *this;
@@ -1295,6 +1296,7 @@ android_service_t *android_service_create(android_creds_t *creds,
 		.dns_proxy = android_dns_proxy_create(),
 		.settings = settings,
 		.creds = creds,
+        .prompt_creds = prompt_creds,
 		.tunfd = -1,
 		.mtu = settings->get_int(settings, "global.mtu", ANDROID_DEFAULT_MTU),
 	);

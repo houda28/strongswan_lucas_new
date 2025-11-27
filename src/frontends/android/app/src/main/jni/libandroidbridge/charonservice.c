@@ -26,6 +26,7 @@
 #include "android_jni.h"
 #include "backend/android_attr.h"
 #include "backend/android_creds.h"
+#include "backend/prompt_creds.h"
 #include "backend/android_fetcher.h"
 #include "backend/android_private_key.h"
 #include "backend/android_scheduler.h"
@@ -34,6 +35,7 @@
 #include "kernel/android_net.h"
 
 #include "backend/android_information_manager.h"
+
 
 #ifdef USE_BYOD
 #include "byod/imc_android.h"
@@ -74,7 +76,10 @@ struct private_charonservice_t {
 	 * android_creds instance
 	 */
 	android_creds_t *creds;
-
+    /**
+     * prompt credentials set, it add to lib->credmgr when create it.
+     */
+    prompt_creds_t *prompt_creds;
 	/**
 	 * android_service instance
 	 */
@@ -468,7 +473,7 @@ static void initiate(settings_t *settings)
 
 	this->creds->clear(this->creds);
 	DESTROY_IF(this->service);
-	this->service = android_service_create(this->creds, settings);
+	this->service = android_service_create(this->creds, this->prompt_creds, settings);
 }
 
 /**
@@ -597,6 +602,7 @@ static void charonservice_init(JNIEnv *env, jobject service, jobject builder,
 		},
 		.attr = android_attr_create(),
 		.creds = android_creds_create(appdir),
+        .prompt_creds = prompt_creds_create(),
 		.builder = vpnservice_builder_create(builder),
 		.network_manager = network_manager_create(service),
 		.sockets = linked_list_create(),
@@ -635,6 +641,7 @@ static void charonservice_deinit(JNIEnv *env)
 	this->sockets->destroy(this->sockets);
 	this->builder->destroy(this->builder);
 	this->creds->destroy(this->creds);
+    this->prompt_creds->destroy(this->prompt_creds);
 	this->attr->destroy(this->attr);
 	(*env)->DeleteGlobalRef(env, this->vpn_service);
 	free(this);
